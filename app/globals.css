@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/* Theme lifted from the original prototype stylesheet so the Tailwind build
+   produces the same palette, type scale and breakpoints. */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-xs: 380px;
+  --breakpoint-sm: 731px;
+  --breakpoint-md: 1051px;
+  --breakpoint-lg: 1500px;
+
+  --color-ink: #142039;
+  --color-ink-soft: #18243a;
+  --color-ink-hover: #2e4161;
+  --color-page: #f4f6f9;
+  --color-muted: #647187;
+  --color-muted-2: #6d788a;
+  --color-muted-3: #748094;
+  --color-line: #e0e5ed;
+  --color-line-2: #dce3ec;
+  --color-line-3: #dde3eb;
+  --color-field: #d9e0e9;
+  --color-field-bg: #f9fafc;
+  --color-positive: #237d66;
+  --color-negative: #b44b55;
+  --color-error: #ad354b;
+  --color-lime: #cbfa76;
+  --color-lime-2: #d2fa8f;
+  --color-pill-bg: #f4fadf;
+  --color-pill-line: #dbe2c7;
+  --color-panel-line: #393858;
+  --color-panel-btn: #223149;
+  --color-panel-btn-line: #48556a;
+  --color-panel-text: #afbbce;
+
+  --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* The handful of rules Tailwind utilities cannot express. */
+html {
+  font-synthesis: none;
+}
+
+dialog::backdrop {
+  background: #14203980;
+  backdrop-filter: blur(3px);
+}
+
+:focus-visible {
+  outline: 3px solid #4274e9;
+  outline-offset: 3px;
+}

@@ -2,7 +2,7 @@
 
 A hackathon project exploring creator-led investment portfolios using tokenized stocks on BNB Chain. Creators define strategies; investors compare allocations and participate according to their preferences and risk appetite.
 
-**Current stage:** concept research and a browser simulation. Live BSC assets, wallet execution, and Binance Web3 API integration remain to be built. “Folio Lab” is a working name.
+**Current stage:** concept research plus a Next.js prototype with simulated assets. Live BSC assets, wallet execution, and Binance Web3 API integration remain to be built. “Folio Lab” is a working name.
 
 ## Start here
 
@@ -17,7 +17,25 @@ A hackathon project exploring creator-led investment portfolios using tokenized 
 - [Risk register and legal questions](knowledge-base/04-risk-and-legal.md)
 - [Validation, economics and decisions](knowledge-base/05-validation-and-decisions.md)
 
-This repository currently contains documentation only. The existing simulation is hosted separately; its private link is recorded in the hackathon scope and requires access from its owner.
+## Running the app
+
+```bash
+npm install
+npm run dev      # http://localhost:3000
+npm test         # vault accounting tests
+npm run build    # production build
+```
+
+| Path | What it holds |
+|---|---|
+| `app/` | Routes and layout. `app/api/` is where Binance Web3 API calls belong — server-side, so keys stay out of the browser. |
+| `components/` | Presentation only. |
+| `lib/domain/` | Vault accounting and formatting. Pure functions, no React, unit-tested. |
+| `lib/state/` | Reducer and context wiring the domain to the UI. |
+| `prototype/` | The original single-file version this was migrated from. Reference only. |
+
+Copy `.env.example` to `.env.local` for API credentials. Everything in the app is
+still simulated: fictional assets, no wallet, no chain calls.
 
 ## Working as a team
 
