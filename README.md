@@ -6,6 +6,8 @@ A hackathon project exploring creator-led investment portfolios using tokenized 
 
 ## Start here
 
+Current implementation plan: [Seeded pooled portfolio PRD and task assignments](docs/folio-lab-pooled-fund-prd.md). Aik Wei owns smart contracts; Vincent owns the backend. Frontend ownership remains open.
+
 1. [Hackathon scope and next build slices](knowledge-base/06-bnb-hackathon.md)
 2. [Knowledge-base index](knowledge-base/README.md)
 3. [Concept and assessment](knowledge-base/01-concept-and-assessment.md)
