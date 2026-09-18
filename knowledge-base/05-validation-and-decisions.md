@@ -12,6 +12,8 @@ Current delivery priority: [BNB hackathon prototype](06-bnb-hackathon.md). The p
 | 2026-09-17 | Market, investor segment, issuer and legal structure | Open |
 | 2026-09-17 | Hackathon first; BNB tokenized-stocks event selected | Founder direction |
 | 2026-09-17 | BSC mainnet submission; initial browser simulation | Event requirement / current prototype |
+| 2026-09-18 | Seeded pooled portfolio: founding investor seeds the vault, later investors receive shares, manager rebalances shared holdings | Founder direction; supersedes individual-wallet basket proposal |
+| 2026-09-18 | Aik Wei owns smart contracts; Vincent owns backend; frontend owner remains open | Confirmed team assignment; see [PRD and task plan](../docs/folio-lab-pooled-fund-prd.md) |
 
 ## Riskiest assumptions and cheap tests
 

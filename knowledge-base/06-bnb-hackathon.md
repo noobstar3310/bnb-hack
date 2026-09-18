@@ -2,6 +2,8 @@
 
 Updated 17 September 2026. This document takes priority over earlier production-launch sequencing for the immediate build. The long-term fund-management vision is unchanged.
 
+**18 September scope decision:** the founder selected a seeded pooled portfolio. Aik Wei owns smart contracts and Vincent owns backend. The [current PRD and task plan](../docs/folio-lab-pooled-fund-prd.md) supersedes the individual-wallet alternative below; the integration slices remain background proposals to adapt to vault execution.
+
 ## Event requirements
 
 The [official event page](https://www.bnbchain.org/en/hackathons/tokenized-stocks) specifies BSC mainnet, spot assets, a central role for bStocks/Ondo/xStocks, and at least one Binance Web3 API module. The deadline is 11 October 2026 at 12:00 UTC (20:00 Malaysia). Submission needs a public repository and an accessible deployment or reproducible instructions. A developer-experience report is mandatory; it must reflect genuine experience, and the organizers reject AI-generated reports. A short demo video is optional. Scoring: implementation 30%, originality 25%, developer experience 25%, UX 20%.
@@ -28,11 +30,11 @@ The initial browser prototype supports strategy discovery, allocation-based crea
 4. **Portfolio read-back.** Reconcile confirmed balances through Wallet API or chain reads. Separate confirmed holdings from pending orders.
 5. **Submission packaging.** Publish an appropriate public source repository and judge-accessible demonstration, prepare a walkthrough, and use the participant's own development notes for the experience report.
 
-Choose deliberately between a pooled vault and individual-wallet basket execution. A basket held in each user's wallet can demonstrate strategy discovery and investing sooner, but does not implement pooled fund shares. If pooled management is retained for the hackathon, scope a reviewed vault integration and explicit investor/manager permissions; do not call the browser simulation an onchain vault.
+The selected model is now pooled management: scope a reviewed vault integration and explicit investor/manager permissions. Investors sign their subscriptions and redemptions; the authorized manager signs vault rebalances within contract-enforced limits. Do not call the browser simulation an onchain vault.
 
 ## What is needed next
 
-A Binance Web3 developer account/API key through the [developer portal](https://web3.binance.com/en/dev-portal), a chosen instrument/provider and basket, and an explicit choice of pooled vault versus individual-wallet execution. Secrets should be configured securely rather than pasted into chat or browser code. Live transactions require a funded wallet and the owner's review/signature.
+A Binance Web3 developer account/API key through the [developer portal](https://web3.binance.com/en/dev-portal), a chosen instrument/provider and basket, and a compatible pooled-vault integration. Secrets should be configured securely rather than pasted into chat or browser code. Live transactions require the appropriate funded wallet and authorized owner's review/signature.
 
 ## Scope discipline
 
