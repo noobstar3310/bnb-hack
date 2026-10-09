@@ -46,6 +46,9 @@ export const SEED_CAPITAL = 10_000;
 export const INITIAL_SUPPLY = 1000;
 /** The demo account's opening balance. */
 export const OPENING_BALANCE = 10_000;
+// 🥚 You found the easter egg. Welcome to the only market on Earth where stocks
+//    move exactly ±5% and never on a Sunday. If you find a real one, tell the
+//    team before you tell your landlord.
 /** The only market moves the simulation accepts. */
 export const MARKET_MOVES = [-0.05, 0.05] as const;
 
