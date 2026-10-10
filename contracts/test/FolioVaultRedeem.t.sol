@@ -4,7 +4,6 @@ pragma solidity 0.8.30;
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {FolioVault} from "../src/FolioVault.sol";
 import {MockPausableERC20} from "./mocks/MockERC20.sol";
-import {FolioVaultHarness} from "./helpers/FolioVaultHarness.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
 contract FolioVaultRedeemTest is VaultFixture {
@@ -14,7 +13,7 @@ contract FolioVaultRedeemTest is VaultFixture {
         super.setUp();
         // Bob seeds 1,000; the manager has bought: vault holds 600 USDT + 2 AAPL, 1,000 shares.
         _seedAndActivate(1_000e18);
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
     }
 
     function test_redeem_paysTheSamePercentOfEveryAsset() public {
@@ -96,7 +95,7 @@ contract FolioVaultRedeemTest is VaultFixture {
     }
 
     function test_redeem_seedInvestorCanRecoverBeforeActivation() public {
-        FolioVaultHarness fresh = new FolioVaultHarness(registry, manager);
+        FolioVault fresh = new FolioVault(registry, manager, "Folio Test", "fTST");
         usdt.mint(carol, 100e18);
         vm.prank(carol);
         usdt.approve(address(fresh), 100e18);
@@ -163,8 +162,9 @@ contract FolioVaultRedeemTest is VaultFixture {
 
     function _holdPausedStock() internal returns (MockPausableERC20 stock) {
         stock = new MockPausableERC20();
-        stock.mint(address(vault), 5e18);
-        vault.addHeldAsset(address(stock));
+        vm.prank(governance);
+        registry.setAsset(address(stock), true);
+        _trade(usdt, stock, 100e18, 5e18);
         stock.setPaused(true);
     }
 
@@ -185,10 +185,10 @@ contract FolioVaultRedeemTest is VaultFixture {
         (address[] memory assets, uint256[] memory amounts) = vault.redeemExcept(100e18, bob, forfeit);
 
         assertEq(assets[2], address(stock));
-        assertEq(amounts[0], 60e18, "10% of the USDT");
+        assertEq(amounts[0], 50e18, "10% of the 500 USDT left after buying the stock");
         assertEq(amounts[1], 0.2e18, "10% of the AAPL");
         assertEq(amounts[2], 0, "forfeited leg pays nothing");
-        assertEq(usdt.balanceOf(bob), 60e18);
+        assertEq(usdt.balanceOf(bob), 50e18);
         assertEq(stock.balanceOf(address(vault)), 5e18, "forfeited tokens stay for remaining holders");
         assertEq(vault.totalSupply(), 900e18, "shares are burned in full");
     }
@@ -202,7 +202,7 @@ contract FolioVaultRedeemTest is VaultFixture {
     }
 
     function test_redeem_inDraftRevertsWithNamedError() public {
-        FolioVaultHarness fresh = new FolioVaultHarness(registry, manager);
+        FolioVault fresh = new FolioVault(registry, manager, "Folio Test", "fTST");
 
         vm.expectRevert(FolioVault.NothingToRedeem.selector);
         vm.prank(bob);
