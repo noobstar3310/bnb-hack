@@ -69,11 +69,14 @@ let envLoaded = false;
 function loadProjectEnv(): void {
   if (envLoaded) return;
   envLoaded = true;
+  // Next has already loaded the root .env* files. Reading files here inside Next would make the
+  // build trace the whole project, which can ship .env files in the server bundle.
+  if (process.env.NEXT_RUNTIME) return;
 
   const root = process.cwd();
   for (const file of [join(root, '.env.local'), join(root, '.env'), join(root, 'api', '.env')]) {
     try {
-      for (const line of readFileSync(file, 'utf8').split('\n')) {
+      for (const line of readFileSync(/*turbopackIgnore: true*/ file, 'utf8').split('\n')) {
         const match = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/);
         if (!match) continue;
         const value = match[2].trim().replace(/^["']|["']$/g, '');

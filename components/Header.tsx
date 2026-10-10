@@ -1,15 +1,15 @@
 'use client';
 
-import { useStore, type ViewMode } from '@/lib/state/store';
+import {WalletButton} from './WalletButton';
 
-const TABS: { id: ViewMode; label: string }[] = [
-  { id: 'explore', label: 'Explore' },
-  { id: 'positions', label: 'My positions' },
+export type ViewMode = 'explore' | 'positions';
+
+const TABS: {id: ViewMode; label: string}[] = [
+  {id: 'explore', label: 'Explore'},
+  {id: 'positions', label: 'My positions'},
 ];
 
-export function Header() {
-  const { mode, dispatch } = useStore();
-
+export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode) => void}) {
   return (
     <header className="flex h-[72px] items-center gap-[12px] border-b border-line-3 bg-white px-[5%] xs:gap-[20px] sm:h-[88px] sm:gap-[56px]">
       <a
@@ -30,7 +30,7 @@ export function Header() {
               key={tab.id}
               type="button"
               aria-current={active ? 'page' : undefined}
-              onClick={() => dispatch({ type: 'setMode', mode: tab.id })}
+              onClick={() => onMode(tab.id)}
               className={`relative border-0 bg-transparent text-[13px] sm:text-[15px] ${
                 active ? 'font-[650] text-ink' : 'text-[#6c768a]'
               }`}
@@ -42,9 +42,7 @@ export function Header() {
         })}
       </nav>
 
-      <span className="ml-auto rounded-md border border-pill-line bg-pill-bg p-[6px] text-[10px] font-[750] tracking-[0.5px] sm:px-3 sm:py-2 sm:text-[12px] sm:tracking-[1px]">
-        SIMULATION
-      </span>
+      <WalletButton />
     </header>
   );
 }

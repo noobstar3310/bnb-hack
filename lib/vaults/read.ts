@@ -33,12 +33,16 @@ export interface VaultView {
   holdings: Holding[];
   totalValueUsd: string | null;
   sharePriceUsd: string | null;
+  /** The requested account's stake, when an account was given. */
+  position: {shares: string; valueUsd: string | null} | null;
   /** Unix ms when the prices were read. */
   pricedAt: number;
 }
 
+type PriceBook = Map<string, {symbol: string; price: string | null}>;
+
 /** Binance quotes for BSC, keyed by lowercase token address. Missing on API failure. */
-async function priceBook(): Promise<Map<string, {symbol: string; price: string | null}>> {
+async function priceBook(): Promise<PriceBook> {
   const listing = await getRwaTokens();
   if (!listing.ok) return new Map();
   return new Map(
@@ -48,7 +52,7 @@ async function priceBook(): Promise<Map<string, {symbol: string; price: string |
   );
 }
 
-export async function readVault(vaultParam: string, prices?: Awaited<ReturnType<typeof priceBook>>): Promise<VaultView> {
+export async function readVault(vaultParam: string, account?: Address, prices?: PriceBook): Promise<VaultView> {
   if (!isAddress(vaultParam)) throw new ApiError('vault must be an address', 400);
   const address = getAddress(vaultParam);
   const client = publicClient();
@@ -64,11 +68,12 @@ export async function readVault(vaultParam: string, prices?: Awaited<ReturnType<
       client.readContract({...v, functionName: 'totalSupply'}),
       client.readContract({...v, functionName: 'holdings'}),
       client.readContract({...v, functionName: 'settlementToken'}),
+      account ? client.readContract({...v, functionName: 'balanceOf', args: [account]}) : null,
     ]);
   } catch {
     throw new ApiError(`${address} is not a Folio vault on this chain`, 404);
   }
-  const [name, symbol, manager, state, totalSupply, [assets, amounts], settlement] = core;
+  const [name, symbol, manager, state, totalSupply, [assets, amounts], settlement, shares] = core;
   const book = prices ?? (await priceBook());
 
   const holdings: Holding[] = await Promise.all(
@@ -97,6 +102,14 @@ export async function readVault(vaultParam: string, prices?: Awaited<ReturnType<
   const complete = priced.every((h) => h.valueUsd !== null);
   const total = complete ? priced.reduce((sum, h) => sum + Number(h.valueUsd), 0) : null;
   const supply = Number(formatUnits(totalSupply, 18));
+  const sharePrice = total === null || supply === 0 ? null : total / supply;
+  const position =
+    shares === null
+      ? null
+      : {
+          shares: shares.toString(),
+          valueUsd: sharePrice === null ? null : String(Number(formatUnits(shares, 18)) * sharePrice),
+        };
 
   return {
     address,
@@ -107,13 +120,14 @@ export async function readVault(vaultParam: string, prices?: Awaited<ReturnType<
     totalSupply: totalSupply.toString(),
     holdings,
     totalValueUsd: total === null ? null : String(total),
-    sharePriceUsd: total === null || supply === 0 ? null : String(total / supply),
+    sharePriceUsd: sharePrice === null ? null : String(sharePrice),
+    position,
     pricedAt: Date.now(),
   };
 }
 
 /** Every vault the factory created, newest first. */
-export async function listVaults(): Promise<VaultView[]> {
+export async function listVaults(account?: Address): Promise<VaultView[]> {
   const client = publicClient();
   const chainId = await client.getChainId();
   const factory = process.env.FACTORY_ADDRESS || deploymentFor(chainId)?.factory;
@@ -128,6 +142,6 @@ export async function listVaults(): Promise<VaultView[]> {
     ),
   );
   const book = await priceBook();
-  const vaults = await Promise.all(addresses.map((a) => readVault(a, book)));
+  const vaults = await Promise.all(addresses.map((a) => readVault(a, account, book)));
   return vaults.reverse();
 }
