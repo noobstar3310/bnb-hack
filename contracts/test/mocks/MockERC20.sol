@@ -19,6 +19,11 @@ contract MockERC20 is ERC20 {
     function mint(address to, uint256 amount) external {
         _mint(to, amount);
     }
+
+    /// @dev Open burning lets a hostile mock router take tokens it holds no allowance for.
+    function burn(address from, uint256 amount) external {
+        _burn(from, amount);
+    }
 }
 
 /// @dev Takes 1% of every transfer, so the receiver gets less than was sent.

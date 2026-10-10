@@ -261,6 +261,35 @@ cast wallet import deployer --interactive
 forge script script/<Name>.s.sol --rpc-url bsc_testnet --account deployer --broadcast --verify
 ```
 
+## Known issues (AI security review, 10 October 2026)
+
+A 3-pass AI review (36 agents) of `FolioVault`, `AssetRegistry`, `VaultFactory` and
+`Deploy.s.sol` found the issues below. **None is fixed yet**; they are accepted for the hackathon
+demo and must be fixed before real investor money. **Each issue, with its code location, fix and
+tests to add, is in [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).**
+
+| # | Issue | Who can do it | Planned fix |
+|---|---|---|---|
+| 1 | `rebalance` caps the loss of **each** trade at 2%, but not the total. A curator can trade back and forth many times and keep 2% each time (sandwich, own pool, or router fee field). | Manager | Cooldown between trades, or a daily loss budget |
+| 2 | A sold-out stock leaves `_held` only at a balance of exactly 0. Anyone can send 1 wei before a full sell, so the stock stays held: it keeps one of the 10 slots and every deposit needs its price. A 1-wei sell to clear it reverts with `BuyTooLow`. | Anyone | Treat a balance under a dust threshold as sold out |
+| 3 | Anyone can call `seed` on a new vault before its manager, so the manager's seed reverts. | Anyone | Manager-only `seed` (founder decision, see open decisions) |
+| 4 | A signed price stays valid for 60 s for any caller and vault. A depositor can use the lowest recent price, then `redeem` at once and keep the price move. | Anyone | Accept only the newest price per vault, or a minimum hold time |
+| 5 | `deposit` then an immediate `redeem` buys the vault's stock at the signed price with no fee or slippage; holders pay the DEX gap when the manager buys it back. | Anyone | Entry fee or minimum hold time (conflicts with "no exit delay", decision #11) |
+| 6 | If an issuer freezes a held stock, `deposit` still counts it at full price, while existing holders can leave it behind with `redeemExcept` and take new depositors' USDT. | Existing holder | Guardian pauses the vault (works today), or a per-token frozen flag |
+
+**Integration notes for the backend (Part 2):**
+
+- `checkPrices` rejects a timestamp later than `block.timestamp`. BSC blocks have whole-second
+  timestamps, so sign with the latest block time minus a few seconds, not the server clock.
+- Sign the price per **whole token**, in USDT base units. Ondo tokens report a `tokenToShareRatio`;
+  a price per underlying share would misprice every deposit by that ratio.
+- Never list an asset twice in one signed update (`_priceOf` uses the first match).
+- Never sign test prices with the production key on a fork: the fork keeps chainId 56.
+
+**Accepted trust assumption:** whoever holds the price-signer key, or the owner who can replace it
+(no timelock in this deployment), can sign a near-zero price and take the stock in every vault
+(spec §8.0).
+
 ## Open decisions and next steps
 
 Two decisions block manager trading (SC-04). One open issue could change the interface before

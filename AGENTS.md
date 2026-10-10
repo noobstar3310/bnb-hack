@@ -41,8 +41,9 @@ implementation 30%, originality 25%, developer experience 25%, UX 20%. Details:
 
 ### Part 1 — Smart contracts and deployment
 - `rebalance()`: the curator swaps through the Binance router; balance checks stop anything else leaving
-  the vault (spec §6).
-- `setTargetWeights()`: the curator's planned allocation, stored on-chain and versioned.
+  the vault (spec §6), and signed prices cap each trade's loss at 2%.
+- `setPlan()`: the curator's investment plan as free text, stored on-chain and versioned. Required
+  before the first trade, never enforced.
 - Deploy script: registry, factory, price signer, guardian, stock allowlist. Deploy to BSC mainnet.
 - Publish ABIs and addresses to `lib/contracts/` for Parts 3 and 4.
 
@@ -54,13 +55,13 @@ implementation 30%, originality 25%, developer experience 25%, UX 20%. Details:
 
 ### Part 3 — Investor frontend
 - Wallet connect on BSC (wagmi + viem) and the shared `lib/contracts/` module (ABIs, addresses, hooks).
-- Vault list; vault page with holdings, share price and the curator's target weights.
+- Vault list; vault page with holdings, share price and the curator's plan text.
 - Deposit (approve USDT → fetch `/api/prices` → `deposit`) and withdraw (`redeem`).
 - Replaces the mock data in `lib/domain/` and `lib/state/`.
 
 ### Part 4 — Curator frontend and submission
-- Curator console: create and seed a vault, set target weights, rebalance (fetch `/api/trade` →
-  `rebalance`).
+- Curator console: create and seed a vault, post a plan (`setPlan`), rebalance (fetch `/api/trade` and
+  `/api/prices` → `rebalance`).
 - Deploy the app to Vercel.
 - Root `README.md` for judges, demo video, developer-experience report.
 
@@ -91,14 +92,19 @@ function redeemExcept(uint256 shares, address to, address[] forfeit) returns (ad
 function holdings() view returns (address[] assets, uint256[] amounts);
 function state() view returns (VaultState);   // DRAFT, SEEDED, ACTIVE, PAUSED, CLOSED
 ```
-Planned (Part 1, not built yet — spec §6–7):
+Manager functions (built, tested; replaced the planned `setTargetWeights` on 10 Oct):
 ```solidity
 struct TradeRequest { address router; address sellToken; address buyToken;
                       uint256 maxSellAmount; uint256 minBuyAmount; bytes callData; }
-function rebalance(TradeRequest t);                                  // manager only, ACTIVE
-function setTargetWeights(address[] assets, uint16[] bps);           // manager only; bps sum to 10000
-event TargetWeightsSet(uint64 indexed version, address[] assets, uint16[] bps);
+function setPlan(string plan);              // manager only, 1–1000 bytes, any state; free text, never enforced
+function plan() view returns (string);   function planVersion() view returns (uint64);   // 0 = no plan
+function rebalance(TradeRequest t, PriceUpdate prices, bytes signature) returns (uint256 sold, uint256 bought);
+    // manager only, ACTIVE, needs planVersion > 0. Prices: same signed list as deposit, must cover the
+    // non-USDT side(s) of the trade. Reverts TradeLossTooHigh if value bought < 98% of value sold.
+event PlanPosted(uint64 indexed version, string plan);
+event Rebalanced(address indexed sellToken, address indexed buyToken, uint256 sold, uint256 bought, uint64 planVersion);
 ```
+Max 10 held tokens per vault (USDT included). A stock sold to zero leaves the held list; USDT never does.
 
 **Signed prices (Part 2 → 3).** EIP-712, domain name `Folio Lab`, version `1`, chainId 56,
 verifyingContract = `AssetRegistry`. Type `PriceUpdate(address[] assets,uint256[] prices,uint64 timestamp)`.
@@ -107,7 +113,9 @@ vault holds.
 
 **API responses (Part 2 → 3, 4).** Proposed:
 - `GET /api/prices?vault=0x…` → `{ update: { assets, prices, timestamp }, signature }` (numbers as strings)
-- `GET /api/trade?vault=0x…&sell=0x…&buy=0x…&amount=…` → a `TradeRequest` object
+- `GET /api/trade?vault=0x…&sell=0x…&buy=0x…&amount=…` → a `TradeRequest` object. Verified 10 Oct: the
+  Binance swap `tx.to` equals the quote's `approveTarget` (so `router` = `tx.to`); Ondo quotes need
+  `userWalletAddress` = **the vault address**; `/swap` needs `quoteId` and `slippagePercent`.
 - `GET /api/vaults/0x…` → `{ holdings: [{ asset, symbol, amount, priceUsd, valueUsd }], totalValueUsd,
   sharePriceUsd }`
 
