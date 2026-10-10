@@ -18,7 +18,11 @@ export const DEPLOYMENTS: Partial<Record<number, Deployment>> = {
     factory: '0x0165878A594ca255338adfa4d48449f69242Eb8F',
     usdt: '0x55d398326f99059fF775485246999027B3197955',
   },
-  // 56: { registry: '0x…', factory: '0x…', usdt: '0x55d398326f99059fF775485246999027B3197955' },
+  56: {
+    registry: '0xaacbd93763899Bf63ee1F1a1cd7D9D270262e0a7',
+    factory: '0xcefE54E0EF1443a6e797d97419695D2C5ABbd4a7',
+    usdt: '0x55d398326f99059fF775485246999027B3197955',
+  },
 };
 
 export function deploymentFor(chainId: number): Deployment | undefined {
