@@ -4,7 +4,6 @@ pragma solidity 0.8.30;
 import {AssetRegistry, PriceUpdate} from "../src/AssetRegistry.sol";
 import {FolioVault} from "../src/FolioVault.sol";
 import {MockERC20, MockFeeERC20} from "./mocks/MockERC20.sol";
-import {FolioVaultHarness} from "./helpers/FolioVaultHarness.sol";
 import {VaultFixture} from "./helpers/VaultFixture.sol";
 
 contract FolioVaultDepositTest is VaultFixture {
@@ -17,7 +16,7 @@ contract FolioVaultDepositTest is VaultFixture {
 
     function test_deposit_stockValueRoundsUp() public {
         // 1e18 + 1 AAPL at 333.333...e18 is 333.333...e18 + 333.33..., which does not divide evenly.
-        _simulateBuy(400e18, 1e18 + 1);
+        _buyAapl(400e18, 1e18 + 1);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(333_333_333_333_333_333_333);
         uint256 expectedValue = 600e18 + 333_333_333_333_333_333_333 + 334; // rounded up, not 333
         uint256 expectedShares = 100e18 * 1_000e18 / expectedValue;
@@ -31,10 +30,11 @@ contract FolioVaultDepositTest is VaultFixture {
         vault.deposit(100e18, update, signature, 0);
     }
 
-    function test_deposit_emptyHoldingNeedsNoPrice() public {
-        MockERC20 sold = new MockERC20("Sold Out (Ondo)", "SOLDon", 18);
-        vault.addHeldAsset(address(sold)); // held, balance 0, and the backend signs no price for it
-        (PriceUpdate memory update, bytes memory signature) = _aaplPrice(300e18);
+    function test_deposit_soldOutStockNeedsNoPrice() public {
+        _buyAapl(300e18, 1e18);
+        _trade(aapl, usdt, 1e18, 300e18); // sold out again, so the backend signs no AAPL price
+        (PriceUpdate memory update, bytes memory signature) =
+            _sign(SIGNER_KEY, new address[](0), new uint256[](0), uint64(block.timestamp));
 
         uint256 shares = _deposit(carol, 100e18, update, signature);
 
@@ -53,7 +53,7 @@ contract FolioVaultDepositTest is VaultFixture {
 
     function test_deposit_afterStocksRise_mintsAtFairPrice() public {
         // Vault: 600 USDT + 2 AAPL. At $300 that is 600 + 600 = 1,200 for 1,000 shares = $1.20.
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(300e18);
 
         uint256 shares = _deposit(carol, 120e18, update, signature);
@@ -65,7 +65,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function test_deposit_usdtStaysIdleInVault() public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(300e18);
 
         _deposit(carol, 120e18, update, signature);
@@ -76,7 +76,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function test_deposit_emitsDeposited() public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(300e18);
         usdt.mint(carol, 120e18);
         vm.prank(carol);
@@ -111,9 +111,9 @@ contract FolioVaultDepositTest is VaultFixture {
 
     function test_deposit_stockWithSixDecimals() public {
         MockERC20 nvda = new MockERC20("Nvidia (Ondo)", "NVDAon", 6);
-        vault.sendOut(usdt, sink, 400e18);
-        nvda.mint(address(vault), 2e6);
-        vault.addHeldAsset(address(nvda));
+        vm.prank(governance);
+        registry.setAsset(address(nvda), true);
+        _trade(usdt, nvda, 400e18, 2e6);
 
         address[] memory assets = new address[](1);
         assets[0] = address(nvda);
@@ -132,7 +132,7 @@ contract FolioVaultDepositTest is VaultFixture {
         AssetRegistry r = new AssetRegistry(governance, guardian, address(fee));
         vm.prank(governance);
         r.setPriceSigner(priceSigner);
-        FolioVaultHarness v = new FolioVaultHarness(r, manager);
+        FolioVault v = new FolioVault(r, manager, "Folio Test", "fTST");
 
         fee.mint(bob, 1_000e18);
         vm.prank(bob);
@@ -158,7 +158,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function testFuzz_deposit_neverLowersValuePerShare(uint256 price, uint256 amount) public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         price = bound(price, 1e15, 1e24);
         amount = bound(amount, 1e18, 1e30);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(price);
@@ -172,7 +172,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function testFuzz_depositThenRedeem_neverProfits(uint256 price, uint256 amount) public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         price = bound(price, 1e15, 1e24);
         amount = bound(amount, 1e18, 1e30);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(price);
@@ -188,7 +188,7 @@ contract FolioVaultDepositTest is VaultFixture {
     // ---- rejections
 
     function test_deposit_revertsWhenHeldStockHasNoPrice() public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         address[] memory assets = new address[](0);
         uint256[] memory prices = new uint256[](0);
         (PriceUpdate memory update, bytes memory signature) =
@@ -203,7 +203,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function test_deposit_revertsOnZeroPrice() public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         (PriceUpdate memory update, bytes memory signature) = _aaplPrice(0);
         usdt.mint(carol, 100e18);
         vm.prank(carol);
@@ -227,7 +227,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function test_deposit_revertsOnPricesSignedByAnyoneElse() public {
-        _simulateBuy(400e18, 2e18);
+        _buyAapl(400e18, 2e18);
         address[] memory assets = new address[](1);
         assets[0] = address(aapl);
         uint256[] memory prices = new uint256[](1);
@@ -263,7 +263,7 @@ contract FolioVaultDepositTest is VaultFixture {
     }
 
     function test_deposit_revertsWhenSeededButNotActive() public {
-        FolioVaultHarness fresh = new FolioVaultHarness(registry, manager);
+        FolioVault fresh = new FolioVault(registry, manager, "Folio Test", "fTST");
         usdt.mint(bob, 100e18);
         vm.prank(bob);
         usdt.approve(address(fresh), 100e18);

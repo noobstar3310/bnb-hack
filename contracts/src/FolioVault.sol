@@ -5,10 +5,22 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {AssetRegistry, PriceUpdate} from "./AssetRegistry.sol";
+
+/// @notice One manager trade: swap up to `maxSellAmount` of `sellToken` for at least `minBuyAmount`
+///         of `buyToken` by calling `router` with `callData` (built by the Binance trading API).
+struct TradeRequest {
+    address router;
+    address sellToken;
+    address buyToken;
+    uint256 maxSellAmount;
+    uint256 minBuyAmount;
+    bytes callData;
+}
 
 /// @notice A pooled portfolio. Holds the assets and is itself the ERC-20 share token.
 ///         Deposits are priced from backend-signed stock prices (spec §1, §8.0); redemption is
@@ -29,6 +41,12 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
     uint256 public constant DEAD_SHARES = 1e15;
     address public constant DEAD = 0x000000000000000000000000000000000000dEaD;
 
+    /// @notice Most tokens a vault may hold, USDT included. Every deposit and redeem loops over them.
+    uint256 public constant MAX_ASSETS = 10;
+    /// @notice Most a trade may lose against the signed prices, in basis points (2%).
+    uint256 public constant MAX_TRADE_LOSS_BPS = 200;
+    uint256 public constant MAX_PLAN_LENGTH = 1000;
+
     uint256 internal constant MIN_SEED_UNITS = 10;
 
     AssetRegistry public immutable registry;
@@ -40,7 +58,12 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
     address public manager;
     VaultState public state;
 
-    /// @dev Internal so the test harness can stand in for manager trades until SC-04.
+    /// @notice The manager's investment plan, free text. Informational only: trades never check it,
+    ///         but none can happen before the first plan is posted.
+    string public plan;
+    /// @notice Bumped by every `setPlan`; 0 means no plan yet.
+    uint64 public planVersion;
+
     EnumerableSet.AddressSet internal _held;
 
     event Seeded(address indexed investor, uint256 amount, uint256 shares);
@@ -49,6 +72,10 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
         address indexed investor, uint256 amount, uint256 shares, uint256 vaultValue, uint64 priceTimestamp
     );
     event Redeemed(address indexed investor, uint256 shares, address[] assets, uint256[] amounts);
+    event PlanPosted(uint64 indexed version, string plan);
+    event Rebalanced(
+        address indexed sellToken, address indexed buyToken, uint256 sold, uint256 bought, uint64 planVersion
+    );
 
     error ZeroAddress();
     error UnsupportedDecimals(uint8 decimals);
@@ -63,6 +90,17 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
     error SlippageTooHigh(uint256 shares, uint256 minShares);
     error NothingToRedeem();
     error DeadSharesLocked();
+    error NotManager();
+    error InvalidPlanLength();
+    error NoPlanPosted();
+    error RouterNotAllowed();
+    error AssetNotAllowed();
+    error AssetNotHeld();
+    error SellExceeded(uint256 sold, uint256 maxSell);
+    error BuyTooLow(uint256 bought, uint256 minBuy);
+    error TradeLossTooHigh(uint256 valueSold, uint256 valueBought);
+    error CollateralDecreased(address asset);
+    error TooManyAssets();
 
     constructor(AssetRegistry registry_, address manager_, string memory name_, string memory symbol_)
         ERC20(name_, symbol_)
@@ -112,7 +150,7 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
         _setState(VaultState.ACTIVE);
     }
 
-    /// @notice Emergency brake: stops deposits (and, from SC-04, manager trades).
+    /// @notice Emergency brake: stops deposits and manager trades.
     ///         Redemption keeps working.
     function pause() external {
         _onlyGuardian();
@@ -207,7 +245,89 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
         emit Redeemed(msg.sender, shares, assets, amounts);
     }
 
+    // ---- manager
+
+    /// @notice Publish (or replace) the investment plan. Any text; investors read it and decide.
+    function setPlan(string calldata text) external {
+        _onlyManager();
+        uint256 length = bytes(text).length;
+        if (length == 0 || length > MAX_PLAN_LENGTH) revert InvalidPlanLength();
+        plan = text;
+        emit PlanPosted(++planVersion, text);
+    }
+
+    /// @notice Swap one held token for another through an allowlisted router. The calldata is
+    ///         opaque, so the vault judges the trade only by its own balances afterwards (spec §6):
+    ///         it sold at most `maxSellAmount`, got at least `minBuyAmount`, lost at most 2% of
+    ///         value at the signed prices, and nothing else it holds went down.
+    /// @param prices Signed prices for every non-USDT token in the trade, at most 60 seconds old.
+    ///        They set the minimum the vault must get back, so the manager cannot choose it alone.
+    function rebalance(TradeRequest calldata t, PriceUpdate calldata prices, bytes calldata signature)
+        external
+        nonReentrant
+        returns (uint256 sold, uint256 bought)
+    {
+        _onlyManager();
+        if (state != VaultState.ACTIVE) revert WrongState(state);
+        if (planVersion == 0) revert NoPlanPosted();
+        // A router that is also a token could be sent `approve(thief)`, which moves no balance.
+        if (!registry.isRouter(t.router) || registry.isAsset(t.router)) revert RouterNotAllowed();
+        if (t.sellToken == t.buyToken || !registry.isAsset(t.buyToken)) revert AssetNotAllowed();
+        if (!_held.contains(t.sellToken)) revert AssetNotHeld();
+        registry.checkPrices(prices, signature);
+
+        address[] memory assets = _held.values();
+        uint256[] memory before = new uint256[](assets.length);
+        for (uint256 i; i < assets.length; ++i) {
+            before[i] = IERC20(assets[i]).balanceOf(address(this));
+        }
+        uint256 sellBefore = IERC20(t.sellToken).balanceOf(address(this));
+        uint256 buyBefore = IERC20(t.buyToken).balanceOf(address(this));
+
+        IERC20(t.sellToken).forceApprove(t.router, t.maxSellAmount);
+        Address.functionCall(t.router, t.callData);
+        IERC20(t.sellToken).forceApprove(t.router, 0); // never leave an allowance behind
+
+        uint256 sellAfter = IERC20(t.sellToken).balanceOf(address(this));
+        uint256 buyAfter = IERC20(t.buyToken).balanceOf(address(this));
+        if (buyAfter < buyBefore) revert CollateralDecreased(t.buyToken);
+        sold = sellBefore > sellAfter ? sellBefore - sellAfter : 0;
+        bought = buyAfter - buyBefore;
+        if (sold > t.maxSellAmount) revert SellExceeded(sold, t.maxSellAmount);
+        if (bought == 0 || bought < t.minBuyAmount) revert BuyTooLow(bought, t.minBuyAmount);
+        for (uint256 i; i < assets.length; ++i) {
+            if (assets[i] == t.sellToken || assets[i] == t.buyToken) continue;
+            if (IERC20(assets[i]).balanceOf(address(this)) < before[i]) {
+                revert CollateralDecreased(assets[i]);
+            }
+        }
+
+        // Value sold rounds up and value bought rounds down, so rounding never hides a loss.
+        uint256 valueSold = _valueOf(prices, t.sellToken, sold, Math.Rounding.Ceil);
+        uint256 valueBought = _valueOf(prices, t.buyToken, bought, Math.Rounding.Floor);
+        if (valueBought * 10_000 < valueSold * (10_000 - MAX_TRADE_LOSS_BPS)) {
+            revert TradeLossTooHigh(valueSold, valueBought);
+        }
+
+        // Drop first, so a full vault can still swap one stock entirely into a new one.
+        if (sellAfter == 0 && t.sellToken != address(settlementToken)) _held.remove(t.sellToken);
+        if (_held.add(t.buyToken) && _held.length() > MAX_ASSETS) revert TooManyAssets();
+
+        emit Rebalanced(t.sellToken, t.buyToken, sold, bought, planVersion);
+    }
+
     // ---- internals
+
+    /// @dev `amount` of `asset` in settlement units: USDT at par, anything else at its signed price.
+    function _valueOf(PriceUpdate calldata prices, address asset, uint256 amount, Math.Rounding rounding)
+        internal
+        view
+        returns (uint256)
+    {
+        if (asset == address(settlementToken)) return amount;
+        uint256 unit = 10 ** IERC20Metadata(asset).decimals();
+        return Math.mulDiv(amount, _priceOf(prices, asset), unit, rounding);
+    }
 
     /// @dev Settlement token at par, every other held asset at its signed price. Rounded up, so
     ///      a newcomer can never buy in below the true value.
@@ -216,12 +336,7 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
         for (uint256 i; i < assets.length; ++i) {
             uint256 balance = IERC20(assets[i]).balanceOf(address(this));
             if (balance == 0) continue; // a sold-out holding adds nothing and needs no price
-            if (assets[i] == address(settlementToken)) {
-                value += balance;
-            } else {
-                uint256 unit = 10 ** IERC20Metadata(assets[i]).decimals();
-                value += Math.mulDiv(balance, _priceOf(prices, assets[i]), unit, Math.Rounding.Ceil);
-            }
+            value += _valueOf(prices, assets[i], balance, Math.Rounding.Ceil);
         }
     }
 
@@ -241,6 +356,10 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
             }
         }
         revert MissingPrice(asset);
+    }
+
+    function _onlyManager() internal view {
+        if (msg.sender != manager) revert NotManager();
     }
 
     function _onlyGuardian() internal view {

@@ -4,3 +4,4 @@ broadcast/
 .env
 docs/book/
 lcov.info
+.solidity-auditor/
