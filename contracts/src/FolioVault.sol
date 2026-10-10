@@ -46,6 +46,9 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
     /// @notice Most a trade may lose against the signed prices, in basis points (2%).
     uint256 public constant MAX_TRADE_LOSS_BPS = 200;
     uint256 public constant MAX_PLAN_LENGTH = 1000;
+    /// @notice A stock left with at most 1/DUST_DIVISOR of one token after a sell counts as sold
+    ///         out, so a 1-wei donation cannot keep it in the held list.
+    uint256 public constant DUST_DIVISOR = 1e6;
 
     uint256 internal constant MIN_SEED_UNITS = 10;
 
@@ -310,7 +313,10 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
         }
 
         // Drop first, so a full vault can still swap one stock entirely into a new one.
-        if (sellAfter == 0 && t.sellToken != address(settlementToken)) _held.remove(t.sellToken);
+        // The leftover is no longer counted in deposits or paid out in redeems.
+        if (t.sellToken != address(settlementToken) && sellAfter <= _dust(t.sellToken)) {
+            _held.remove(t.sellToken);
+        }
         if (_held.add(t.buyToken) && _held.length() > MAX_ASSETS) revert TooManyAssets();
 
         emit Rebalanced(t.sellToken, t.buyToken, sold, bought, planVersion);
@@ -356,6 +362,11 @@ contract FolioVault is ERC20, ReentrancyGuardTransient {
             }
         }
         revert MissingPrice(asset);
+    }
+
+    /// @dev One millionth of a whole token: 1e12 wei for an 18-decimal stock.
+    function _dust(address asset) internal view returns (uint256) {
+        return 10 ** IERC20Metadata(asset).decimals() / DUST_DIVISOR;
     }
 
     function _onlyManager() internal view {

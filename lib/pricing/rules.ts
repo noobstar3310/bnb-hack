@@ -69,3 +69,21 @@ export function judgeQuote(token: RwaToken | undefined, rules: PriceRules): Verd
 
   return {ok: true, priceUsd: token.tokenPrice};
 }
+
+/** FolioVault.MAX_TRADE_LOSS_BPS: `rebalance` reverts when a trade loses more than this. */
+export const MAX_TRADE_LOSS_BPS = 200;
+
+export interface TradeLeg {
+  amount: bigint;
+  decimals: number;
+  priceUsd: number;
+}
+
+/**
+ * How much value a trade gives up at the given prices, in percent; negative when it gains.
+ * Display only: the contract does the binding check with signed prices.
+ */
+export function tradeLossPercent(sold: TradeLeg, bought: TradeLeg): number {
+  const value = (leg: TradeLeg) => (Number(leg.amount) / 10 ** leg.decimals) * leg.priceUsd;
+  return (1 - value(bought) / value(sold)) * 100;
+}
