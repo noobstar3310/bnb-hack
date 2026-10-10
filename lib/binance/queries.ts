@@ -103,3 +103,53 @@ export function getUnderlyingMarket(tokenContractAddress: string): Promise<Outco
     tokenContractAddress,
   });
 }
+
+/** One route from `/aggregator/quote`. Only the fields the trade builder relies on. */
+export interface AggregatorQuote {
+  quoteId: string;
+  executionMode: string;
+  fromTokenAmount: string;
+  toTokenAmount: string;
+  approveTarget: string;
+  dexRouterList: {dexProtocol: {dexName: string; percent: string}}[];
+}
+
+/** `/aggregator/swap` response: an unsigned transaction for `userWalletAddress` to send. */
+export interface AggregatorSwap {
+  executionMode: string;
+  tx: {
+    from: string;
+    to: string;
+    data: string;
+    value: string;
+    minReceiveAmount: string;
+    slippagePercent: string;
+    signatureData: unknown;
+  };
+  rfq: unknown;
+}
+
+/**
+ * Ondo tokens need `userWalletAddress` even to quote: the market maker prices for that taker,
+ * so it must be the address that will actually send the swap (for a vault, the vault itself).
+ */
+export function getSwapQuote(params: {
+  fromTokenAddress: string;
+  toTokenAddress: string;
+  amount: string;
+  userWalletAddress: string;
+}): Promise<Outcome<AggregatorQuote[]>> {
+  return read<AggregatorQuote[]>('/api/v1/dex/aggregator/quote', {binanceChainId: BSC_CHAIN_ID, ...params});
+}
+
+/** Builds an unsigned swap. Executes nothing; the returned transaction must still be sent. */
+export function buildSwap(params: {
+  fromTokenAddress: string;
+  toTokenAddress: string;
+  amount: string;
+  userWalletAddress: string;
+  quoteId: string;
+  slippagePercent: string;
+}): Promise<Outcome<AggregatorSwap>> {
+  return read<AggregatorSwap>('/api/v1/dex/aggregator/swap', {binanceChainId: BSC_CHAIN_ID, ...params});
+}
