@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect, useRef, useState} from 'react';
-import {formatUnits} from 'viem';
+import {formatUnits, type Address} from 'viem';
 import {money, tokenAmount} from '@/lib/domain/format';
 import {explainError, useDeposit, useRedeem, type DepositStep, type RedeemResult, type VaultView} from '@/lib/contracts/hooks';
 import type {TradeType} from './DetailPanel';
@@ -30,7 +30,9 @@ export function TradeDialog({type, vault, onClose}: Props) {
   const {redeem, preview, pending} = useRedeem();
   const [amount, setAmount] = useState('');
   const [percent, setPercent] = useState(100);
-  const [previewState, setPreview] = useState<{key: string; result: RedeemResult} | null>(null);
+  const [previewState, setPreview] = useState<{key: string; result?: RedeemResult; error?: string} | null>(null);
+  const [forfeit, setForfeit] = useState<Address[]>([]);
+  const [showForfeit, setShowForfeit] = useState(false);
   const [error, setError] = useState('');
 
   const myShares = BigInt(vault.position?.shares ?? '0');
@@ -39,9 +41,13 @@ export function TradeDialog({type, vault, onClose}: Props) {
   const sharePrice = vault.sharePriceUsd === null ? null : Number(vault.sharePriceUsd);
   const parsed = Number(amount);
   const estShares = sharePrice && parsed > 0 ? parsed / sharePrice : null;
-  // A preview belongs to one (vault, shares) request; a stale one is never shown.
-  const previewKey = type === 'withdraw' && redeemShares > BigInt(0) ? `${vault.address}:${redeemShares}` : null;
-  const payout = previewState && previewState.key === previewKey ? previewState.result : null;
+  // A preview belongs to one (vault, shares, forfeit) request; a stale one is never shown.
+  const previewKey =
+    type === 'withdraw' && redeemShares > BigInt(0) ? `${vault.address}:${redeemShares}:${forfeit.join(',')}` : null;
+  const current = previewState && previewState.key === previewKey ? previewState : null;
+  const payout = current?.result ?? null;
+  const previewError = current?.error ?? null;
+  const leavable = vault.holdings.filter((h) => h.amount !== '0');
 
   useEffect(() => {
     const dialog = ref.current;
@@ -49,6 +55,8 @@ export function TradeDialog({type, vault, onClose}: Props) {
     if (type && !dialog.open) {
       setAmount('');
       setPercent(100);
+      setForfeit([]);
+      setShowForfeit(false);
       setError('');
       reset();
       dialog.showModal();
@@ -61,13 +69,13 @@ export function TradeDialog({type, vault, onClose}: Props) {
   useEffect(() => {
     if (!previewKey) return;
     let live = true;
-    preview(vault.address, redeemShares)
+    preview(vault.address, redeemShares, forfeit)
       .then((result) => live && setPreview({key: previewKey, result}))
-      .catch((e) => live && setError(explainError(e)));
+      .catch((e) => live && setPreview({key: previewKey, error: explainError(e)}));
     return () => {
       live = false;
     };
-  }, [previewKey, vault.address, redeemShares, preview]);
+  }, [previewKey, vault.address, redeemShares, forfeit, preview]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,7 +85,7 @@ export function TradeDialog({type, vault, onClose}: Props) {
         const {shares} = await deposit(vault.address, amount);
         notify(`Invested ${money(parsed)} · ${tokenAmount(shares, 18, 4)} shares received.`);
       } else {
-        await redeem(vault.address, redeemShares);
+        await redeem(vault.address, redeemShares, forfeit);
         notify(`Withdrew ${tokenAmount(redeemShares, 18, 4)} shares. Tokens sent to your wallet.`);
       }
       onClose();
@@ -178,10 +186,45 @@ export function TradeDialog({type, vault, onClose}: Props) {
                     />
                   );
                 })
+              ) : previewError ? (
+                <p className="text-[13px] text-error">
+                  {previewError} One of the vault&apos;s tokens may be paused by its issuer. Leave it behind below
+                  to withdraw everything else.
+                </p>
               ) : (
                 <p className="text-[13px] text-muted-2">Calculating…</p>
               )}
             </div>
+            {showForfeit || previewError ? (
+              <fieldset className="mb-4 rounded-lg border border-line-2 p-[14px]">
+                <legend className="px-1 text-[13px] font-semibold">Leave tokens behind</legend>
+                <p className="mb-2 text-[12px] leading-[1.5] text-muted-2">
+                  Your share of a ticked token stays in the vault for the other holders. Use this only if a token
+                  cannot be transferred.
+                </p>
+                {leavable.map((h) => (
+                  <label key={h.asset} className="my-1 flex items-center gap-2 text-[14px]">
+                    <input
+                      type="checkbox"
+                      disabled={pending}
+                      checked={forfeit.includes(h.asset)}
+                      onChange={(e) =>
+                        setForfeit((list) => (e.target.checked ? [...list, h.asset] : list.filter((a) => a !== h.asset)))
+                      }
+                    />
+                    {h.symbol}
+                  </label>
+                ))}
+              </fieldset>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowForfeit(true)}
+                className="mb-3 border-0 bg-transparent p-0 text-[13px] text-[#264d88]"
+              >
+                A token won&apos;t transfer? Leave it behind
+              </button>
+            )}
             <p className="text-[13px] leading-[1.65] text-muted-2">
               You get your exact share of every holding, in kind. That means stock tokens as well as
               USDT. Selling those tokens is up to you. Withdrawals work even when the vault is paused.
@@ -195,7 +238,7 @@ export function TradeDialog({type, vault, onClose}: Props) {
 
         <button
           type="submit"
-          disabled={busy || pending || (type === 'withdraw' && redeemShares === BigInt(0))}
+          disabled={busy || pending || (type === 'withdraw' && (redeemShares === BigInt(0) || !payout))}
           className="mt-3 w-full rounded-lg border border-ink-soft bg-ink-soft px-[18px] py-[13px] text-[14px] font-[650] text-white hover:bg-ink-hover disabled:opacity-60"
         >
           {type === 'invest' ? STEP_LABEL[step] : pending ? 'Confirm in your wallet…' : 'Confirm withdrawal'}

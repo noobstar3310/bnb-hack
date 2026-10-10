@@ -7,7 +7,7 @@ import {money} from '@/lib/domain/format';
 import {erc20Abi} from '@/lib/contracts/abis';
 import {deploymentFor} from '@/lib/contracts/addresses';
 import type {VaultView} from '@/lib/contracts/hooks';
-import {appChain} from '@/lib/contracts/wagmi';
+import {appChain, appChainLabel} from '@/lib/contracts/wagmi';
 import {useNotify} from './Toast';
 
 /** Open-mint function on the local mock USDT. Exists only on the dev chain. */
@@ -77,7 +77,7 @@ export function AccountBar({vaults}: {vaults: VaultView[]}) {
 
       <div className="flex flex-col gap-[10px] md:border-l md:border-panel-line md:pl-[25px]">
         <span className="text-[13px] text-panel-text sm:text-[14px]">Network</span>
-        <strong className="text-[16px] font-semibold">{appChain.name}</strong>
+        <strong className="text-[16px] font-semibold">{appChainLabel}</strong>
         {isLocal ? (
           <button
             type="button"

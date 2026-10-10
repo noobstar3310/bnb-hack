@@ -11,6 +11,9 @@ const target = process.env.NEXT_PUBLIC_CHAIN ?? (process.env.NODE_ENV === 'produ
 /** The chain every read and transaction goes to. */
 export const appChain = target === 'bsc' ? bsc : foundry;
 
+/** What users see; viem calls the local chain "Foundry", which means nothing to them. */
+export const appChainLabel = appChain.id === bsc.id ? 'BNB Smart Chain' : 'Local test chain';
+
 export const wagmiConfig = createConfig({
   chains: [appChain],
   connectors: [injected()],

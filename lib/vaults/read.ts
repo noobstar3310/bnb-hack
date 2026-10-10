@@ -141,7 +141,10 @@ export async function listVaults(account?: Address): Promise<VaultView[]> {
       client.readContract({address: factory, abi: vaultFactoryAbi, functionName: 'vaults', args: [BigInt(i)]}),
     ),
   );
+  // Dev only: vaults deployed outside the factory (the test harness that already holds stocks,
+  // until Part 1's rebalance lets a factory vault buy them). Comma-separated addresses.
+  const extra = (process.env.DEV_EXTRA_VAULTS ?? '').split(',').map((a) => a.trim()).filter((a) => isAddress(a));
   const book = await priceBook();
-  const vaults = await Promise.all(addresses.map((a) => readVault(a, account, book)));
+  const vaults = await Promise.all([...addresses, ...extra].map((a) => readVault(a, account, book)));
   return vaults.reverse();
 }

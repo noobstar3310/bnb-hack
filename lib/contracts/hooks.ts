@@ -150,6 +150,15 @@ export interface RedeemResult {
   amounts: readonly bigint[];
 }
 
+/**
+ * Withdrawals always go through `redeemExcept`: with an empty `forfeit` list it is identical to
+ * `redeem` (contract-tested). Listing a token leaves it behind for the remaining holders, the
+ * escape hatch when its issuer has paused it, so one stuck token never blocks an exit.
+ */
+function redeemCall(vault: Address, shares: bigint, to: Address, forfeit: readonly Address[]) {
+  return {address: vault, abi: folioVaultAbi, functionName: 'redeemExcept', args: [shares, to, forfeit]} as const;
+}
+
 export function useRedeem() {
   const config = useConfig();
   const queryClient = useQueryClient();
@@ -158,32 +167,21 @@ export function useRedeem() {
 
   /** What redeeming `shares` would pay out right now, in kind. */
   const preview = useCallback(
-    async (vault: Address, shares: bigint): Promise<RedeemResult> => {
+    async (vault: Address, shares: bigint, forfeit: readonly Address[] = []): Promise<RedeemResult> => {
       if (!address) throw new Error('Connect a wallet first.');
-      const {result} = await simulateContract(config, {
-        address: vault,
-        abi: folioVaultAbi,
-        functionName: 'redeem',
-        args: [shares, address],
-        account: address,
-      });
+      const {result} = await simulateContract(config, {...redeemCall(vault, shares, address, forfeit), account: address});
       return {assets: result[0], amounts: result[1]};
     },
     [address, config],
   );
 
   const redeem = useCallback(
-    async (vault: Address, shares: bigint): Promise<RedeemResult> => {
+    async (vault: Address, shares: bigint, forfeit: readonly Address[] = []): Promise<RedeemResult> => {
       if (!address) throw new Error('Connect a wallet first.');
       setPending(true);
       try {
-        const out = await preview(vault, shares);
-        const hash = await writeContract(config, {
-          address: vault,
-          abi: folioVaultAbi,
-          functionName: 'redeem',
-          args: [shares, address],
-        });
+        const out = await preview(vault, shares, forfeit);
+        const hash = await writeContract(config, redeemCall(vault, shares, address, forfeit));
         const receipt = await waitForTransactionReceipt(config, {hash});
         if (receipt.status !== 'success') throw new Error('The withdrawal transaction failed.');
         await queryClient.invalidateQueries({queryKey: [VAULTS_KEY]});

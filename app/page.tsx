@@ -9,7 +9,7 @@ import {PositionsList} from '@/components/PositionsList';
 import {StrategyCard} from '@/components/StrategyCard';
 import {TradeDialog} from '@/components/TradeDialog';
 import {useVaults} from '@/lib/contracts/hooks';
-import {appChain} from '@/lib/contracts/wagmi';
+import {appChainLabel} from '@/lib/contracts/wagmi';
 
 export default function Page() {
   const {isConnected} = useConnection();
@@ -57,7 +57,7 @@ export default function Page() {
             {error ? (
               <Notice>Could not load vaults: {error.message}</Notice>
             ) : isLoading ? (
-              <Notice>Loading vaults from {appChain.name}…</Notice>
+              <Notice>Loading vaults from {appChainLabel}…</Notice>
             ) : mode === 'explore' ? (
               vaults.length ? (
                 <div className="grid gap-[14px]">
@@ -87,7 +87,7 @@ export default function Page() {
             )}
 
             <p className="mt-[22px] text-[12px] leading-[1.7] text-[#7a8495]">
-              Holdings and share counts are read from the vault contracts on {appChain.name}. Dollar values are
+              Holdings and share counts are read from the vault contracts on {appChainLabel}. Dollar values are
               estimates at Binance prices; withdrawals pay out the tokens themselves, not a dollar amount.
             </p>
           </section>

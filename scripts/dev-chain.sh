@@ -11,7 +11,7 @@ export PATH="$PATH:$HOME/.foundry/bin"
 cd "$ROOT/contracts"
 set -a; . "$ROOT/.env.local"; set +a
 
-RPC=http://127.0.0.1:8545
+RPC=${RPC_URL:-http://127.0.0.1:8545}
 PK=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80   # anvil account 0
 ME=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 USDT=0x55d398326f99059fF775485246999027B3197955
@@ -27,7 +27,10 @@ plant() { # plant <real address> <symbol>: copy a fresh 18-decimal MockERC20's c
   cast rpc --rpc-url $RPC anvil_setCode "$1" "$(cast code --rpc-url $RPC "$tmp")" >/dev/null
 }
 
-plant $USDT USDT; plant $AAPL AAPLon; plant $NVDA NVDAon; plant $MSFT MSFTon
+plant $USDT USDT; plant $AAPL AAPLon; plant $NVDA NVDAon
+# MSFTon is pausable (setPaused), to rehearse an issuer pausing a held token.
+tmp=$(forge create test/mocks/MockERC20.sol:MockPausableERC20 --rpc-url $RPC --private-key $PK --broadcast 2>&1 | awk '/Deployed to/{print $3}')
+cast rpc --rpc-url $RPC anvil_setCode $MSFT "$(cast code --rpc-url $RPC "$tmp")" >/dev/null
 send $USDT "mint(address,uint256)" $ME 1000000000000000000000000   # 1,000,000 USDT
 
 REG=$(dep src/AssetRegistry.sol:AssetRegistry $ME $ME $USDT)
@@ -41,7 +44,22 @@ send $USDT "approve(address,uint256)" "$V" 1000000000000000000000
 send "$V" "seed(uint256)" 100000000000000000000                    # 100 USDT
 send "$V" "activate()"
 
+# A second vault that already holds stocks. Factory vaults can only hold USDT until Part 1 builds
+# rebalance(), so this uses the test harness to stand in for the curator's trades.
+H=$(dep test/helpers/FolioVaultHarness.sol:FolioVaultHarness "$REG" $ME)
+send $USDT "approve(address,uint256)" "$H" 1000000000000000000000
+send "$H" "seed(uint256)" 1000000000000000000000                   # 1000 USDT
+send "$H" "activate()"
+send "$H" "sendOut(address,address,uint256)" $USDT 0x000000000000000000000000000000000000bEEF 600000000000000000000
+send $AAPL "mint(address,uint256)" "$H" 1000000000000000000         # 1 AAPLon
+send $NVDA "mint(address,uint256)" "$H" 1000000000000000000         # 1 NVDAon
+send $MSFT "mint(address,uint256)" "$H" 500000000000000000          # 0.5 MSFTon
+for t in $AAPL $NVDA $MSFT; do send "$H" "addHeldAsset(address)" $t; done
+
 echo "REGISTRY=$REG"
 echo "FACTORY=$FAC"
 echo "VAULT=$V"
 echo "state=$(cast call --rpc-url $RPC "$V" 'state()(uint8)') supply=$(cast call --rpc-url $RPC "$V" 'totalSupply()(uint256)')"
+echo
+echo "Add to .env.local so the app lists the stock vault:"
+echo "DEV_EXTRA_VAULTS=$H"

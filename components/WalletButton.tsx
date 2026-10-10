@@ -3,7 +3,7 @@
 import {useSyncExternalStore} from 'react';
 import {useChainId, useConnect, useConnection, useConnectors, useDisconnect, useSwitchChain} from 'wagmi';
 import {shortAddress} from '@/lib/domain/format';
-import {appChain} from '@/lib/contracts/wagmi';
+import {appChain, appChainLabel} from '@/lib/contracts/wagmi';
 
 const pill =
   'ml-auto rounded-md border px-3 py-2 text-[12px] font-[650] sm:text-[13px] whitespace-nowrap';
@@ -43,7 +43,7 @@ export function WalletButton() {
         onClick={() => switchChain({chainId: appChain.id})}
         className={`${pill} border-[#e6c27a] bg-[#fff6e3] text-[#7a5310]`}
       >
-        Switch to {appChain.name}
+        Switch to {appChainLabel}
       </button>
     );
   }
