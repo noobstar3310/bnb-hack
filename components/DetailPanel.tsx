@@ -75,34 +75,19 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
       <hr className="my-[22px] border-0 border-t border-[#e5e9f0]" />
 
       <h3 className="text-[16px]">
-        Curator&apos;s target
-        {vault.target && <span className="pl-2 text-[12px] font-normal text-muted-3">v{vault.target.version}</span>}
+        Curator&apos;s plan
+        {vault.plan && <span className="pl-2 text-[12px] font-normal text-muted-3">v{vault.plan.version}</span>}
       </h3>
-      {vault.target ? (
+      {vault.plan ? (
         <>
-          <div className="mt-3 flex justify-between text-[12px] text-muted-3">
-            <span>Stock</span>
-            <span>Target · now</span>
-          </div>
-          {vault.target.weights.map((w) => {
-            const now = slices.find((sl) => sl.symbol === w.symbol)?.percent ?? 0;
-            return (
-              <div key={w.asset} className="my-2 flex justify-between text-[14px]">
-                <span>{w.symbol}</span>
-                <span>
-                  <strong>{(w.bps / 100).toFixed(0)}%</strong>
-                  <span className="pl-2 text-muted-2">{vault.totalValueUsd === null ? '—' : `${now.toFixed(0)}%`}</span>
-                </span>
-              </div>
-            );
-          })}
-          <p className="text-[13px] leading-[1.65] text-muted-2">
-            Published on-chain by the curator. Actual holdings drift with prices until they rebalance.
+          <p className="mt-3 whitespace-pre-wrap break-words text-[14px] leading-[1.65]">{vault.plan.text}</p>
+          <p className="mt-2 text-[13px] leading-[1.65] text-muted-2">
+            Posted on-chain by the curator. The vault does not enforce it; compare it with the holdings above.
           </p>
         </>
       ) : (
         <p className="mt-2 text-[13px] leading-[1.65] text-muted-2">
-          The curator has not published target weights on-chain yet.
+          The curator has not posted a plan yet, so the vault cannot trade.
         </p>
       )}
 
