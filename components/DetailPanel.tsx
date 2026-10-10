@@ -16,7 +16,9 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
   const slices = allocation(vault);
   const held = vault.holdings.filter((h) => h.amount !== '0');
   const hasShares = Boolean(vault.position && vault.position.shares !== '0');
-  const acceptsDeposits = vault.state === 'ACTIVE';
+  // A holding without a live price makes the signed-price deposit impossible; say so up front.
+  const pricesMissing = held.some((h) => h.valueUsd === null);
+  const acceptsDeposits = vault.state === 'ACTIVE' && !pricesMissing;
 
   return (
     <aside
@@ -59,16 +61,50 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
         <span className="text-[#67748a]">Total</span>
         <strong>{vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))}</strong>
       </div>
-      <p className="text-[13px] leading-[1.65] text-muted-2">
-        Read from the vault contract. Idle USDT waits here until the curator invests it.
-      </p>
+      {pricesMissing ? (
+        <p className="rounded-md bg-[#fff6e3] p-[10px] text-[13px] leading-[1.6] text-[#7a5310]">
+          Live prices are unavailable for some holdings right now, so values are hidden and deposits are paused.
+          Withdrawals still work.
+        </p>
+      ) : (
+        <p className="text-[13px] leading-[1.65] text-muted-2">
+          Read from the vault contract. Idle USDT waits here until the curator invests it.
+        </p>
+      )}
 
       <hr className="my-[22px] border-0 border-t border-[#e5e9f0]" />
 
-      <h3 className="text-[16px]">Curator&apos;s target</h3>
-      <p className="mt-2 text-[13px] leading-[1.65] text-muted-2">
-        The curator has not published target weights on-chain yet.
-      </p>
+      <h3 className="text-[16px]">
+        Curator&apos;s target
+        {vault.target && <span className="pl-2 text-[12px] font-normal text-muted-3">v{vault.target.version}</span>}
+      </h3>
+      {vault.target ? (
+        <>
+          <div className="mt-3 flex justify-between text-[12px] text-muted-3">
+            <span>Stock</span>
+            <span>Target · now</span>
+          </div>
+          {vault.target.weights.map((w) => {
+            const now = slices.find((sl) => sl.symbol === w.symbol)?.percent ?? 0;
+            return (
+              <div key={w.asset} className="my-2 flex justify-between text-[14px]">
+                <span>{w.symbol}</span>
+                <span>
+                  <strong>{(w.bps / 100).toFixed(0)}%</strong>
+                  <span className="pl-2 text-muted-2">{vault.totalValueUsd === null ? '—' : `${now.toFixed(0)}%`}</span>
+                </span>
+              </div>
+            );
+          })}
+          <p className="text-[13px] leading-[1.65] text-muted-2">
+            Published on-chain by the curator. Actual holdings drift with prices until they rebalance.
+          </p>
+        </>
+      ) : (
+        <p className="mt-2 text-[13px] leading-[1.65] text-muted-2">
+          The curator has not published target weights on-chain yet.
+        </p>
+      )}
 
       <h3 className="mt-5 text-[16px]">Vault rules</h3>
       <div className="my-3 flex flex-wrap gap-[6px]">
@@ -99,7 +135,13 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
         onClick={() => onTrade('invest')}
         className="mt-3 w-full rounded-lg border border-ink-soft bg-ink-soft px-[18px] py-[13px] text-[14px] font-[650] text-white hover:bg-ink-hover disabled:opacity-50"
       >
-        {!connected ? 'Connect a wallet to invest' : acceptsDeposits ? 'Invest USDT' : `Deposits closed (${vault.state.toLowerCase()})`}
+        {!connected
+          ? 'Connect a wallet to invest'
+          : acceptsDeposits
+            ? 'Invest USDT'
+            : pricesMissing && vault.state === 'ACTIVE'
+              ? 'Deposits paused: no live prices'
+              : `Deposits closed (${vault.state.toLowerCase()})`}
       </button>
       {hasShares && (
         <button

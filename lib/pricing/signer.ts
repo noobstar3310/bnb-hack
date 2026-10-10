@@ -8,7 +8,7 @@
 import {getAddress, isAddress, type Address, type Hex} from 'viem';
 import {privateKeyToAccount} from 'viem/accounts';
 import {getRwaTokens} from '@/lib/binance/queries';
-import {ApiError, publicClient} from '@/lib/chain/server';
+import {ApiError, publicClient, vaultReadError} from '@/lib/chain/server';
 import {assetRegistryAbi, erc20Abi, folioVaultAbi} from '@/lib/contracts/abis';
 import {DEFAULT_MAX_DIVERGENCE_BPS, judgeQuote, usdToUnits, type PriceRules} from './rules';
 
@@ -54,8 +54,8 @@ export async function signPricesForVault(vaultParam: string): Promise<SignedPric
       client.readContract({address: vault, abi: folioVaultAbi, functionName: 'registry'}),
       client.readContract({address: vault, abi: folioVaultAbi, functionName: 'settlementToken'}),
     ]);
-  } catch {
-    throw new ApiError(`${vault} is not a Folio vault on this chain`, 404);
+  } catch (error) {
+    throw vaultReadError(error, vault);
   }
 
   const [chainId, onchainSigner, settlementDecimals] = await Promise.all([
@@ -77,7 +77,9 @@ export async function signPricesForVault(vaultParam: string): Promise<SignedPric
 
   if (stocks.length > 0) {
     const listing = await getRwaTokens();
-    if (!listing.ok) throw new ApiError(`Binance price API failed: ${listing.error}`, 502);
+    if (!listing.ok) {
+      throw new ApiError(`Live stock prices are unavailable right now, so deposits are paused. (${listing.error})`, 503);
+    }
     const bsc = new Map(
       listing.data
         .filter((t) => t.binanceChainId === '56')
@@ -96,7 +98,10 @@ export async function signPricesForVault(vaultParam: string): Promise<SignedPric
       quotes.push({asset: getAddress(asset), symbol: token!.tokenSymbol, priceUsd: verdict.priceUsd});
     }
     // One unpriced holding makes the contract revert anyway; refuse here with a reason instead.
-    if (refused.length) throw new ApiError('Cannot price every holding', 503, refused);
+    if (refused.length) {
+      const which = refused.map((r) => `${bsc.get(r.asset.toLowerCase())?.tokenSymbol ?? r.asset}: ${r.reason}`).join('; ');
+      throw new ApiError(`Some holdings have no safe price right now, so deposits are paused. ${which}`, 503, refused);
+    }
   }
 
   // The contract rejects a timestamp ahead of block.timestamp, so never sign past the chain's clock.

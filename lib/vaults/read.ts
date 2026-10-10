@@ -6,7 +6,7 @@
  */
 import {formatUnits, getAddress, isAddress, type Address} from 'viem';
 import {getRwaTokens} from '@/lib/binance/queries';
-import {ApiError, publicClient} from '@/lib/chain/server';
+import {ApiError, isChainDown, publicClient, vaultReadError} from '@/lib/chain/server';
 import {erc20Abi, folioVaultAbi, vaultFactoryAbi} from '@/lib/contracts/abis';
 import {deploymentFor} from '@/lib/contracts/addresses';
 
@@ -33,13 +33,53 @@ export interface VaultView {
   holdings: Holding[];
   totalValueUsd: string | null;
   sharePriceUsd: string | null;
+  /** The curator's published target allocation, or null until one is published on-chain. */
+  target: TargetAllocation | null;
   /** The requested account's stake, when an account was given. */
   position: {shares: string; valueUsd: string | null} | null;
   /** Unix ms when the prices were read. */
   pricedAt: number;
 }
 
+export interface TargetAllocation {
+  version: number;
+  weights: {asset: Address; symbol: string; bps: number}[];
+}
+
 type PriceBook = Map<string, {symbol: string; price: string | null}>;
+
+/**
+ * PROPOSED read function for Part 1 (not in the contract yet). AGENTS.md plans setTargetWeights()
+ * and a TargetWeightsSet event but no getter, and scanning event history is unreliable on BSC RPCs.
+ * Until FolioVault has this view, the call reverts and the target reads as unpublished.
+ */
+const targetWeightsAbi = [
+  {
+    type: 'function',
+    name: 'targetWeights',
+    inputs: [],
+    outputs: [
+      {name: 'assets', type: 'address[]'},
+      {name: 'bps', type: 'uint16[]'},
+      {name: 'version', type: 'uint64'},
+    ],
+    stateMutability: 'view',
+  },
+] as const;
+
+/** Pairs the raw target arrays with display symbols; null when nothing has been published. */
+export function toTarget(
+  assets: readonly Address[],
+  bps: readonly number[],
+  version: bigint,
+  symbolOf: (asset: Address) => string,
+): TargetAllocation | null {
+  if (version === BigInt(0) || assets.length === 0 || assets.length !== bps.length) return null;
+  return {
+    version: Number(version),
+    weights: assets.map((asset, i) => ({asset: getAddress(asset), symbol: symbolOf(asset), bps: bps[i]})),
+  };
+}
 
 /** Binance quotes for BSC, keyed by lowercase token address. Missing on API failure. */
 async function priceBook(): Promise<PriceBook> {
@@ -70,8 +110,8 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
       client.readContract({...v, functionName: 'settlementToken'}),
       account ? client.readContract({...v, functionName: 'balanceOf', args: [account]}) : null,
     ]);
-  } catch {
-    throw new ApiError(`${address} is not a Folio vault on this chain`, 404);
+  } catch (error) {
+    throw vaultReadError(error, address);
   }
   const [name, symbol, manager, state, totalSupply, [assets, amounts], settlement, shares] = core;
   const book = prices ?? (await priceBook());
@@ -88,7 +128,7 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
       const units = Number(formatUnits(amounts[i], decimals));
       return {
         asset: getAddress(asset),
-        symbol: isSettlement ? 'USDT' : (quote?.symbol ?? onchainSymbol ?? 'UNKNOWN'),
+        symbol: isSettlement ? 'USDT' : quote?.symbol || onchainSymbol || `${asset.slice(0, 6)}…${asset.slice(-4)}`,
         decimals,
         amount: amounts[i].toString(),
         priceUsd,
@@ -96,6 +136,18 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
       };
     }),
   );
+
+  let target: TargetAllocation | null = null;
+  try {
+    const [tAssets, tBps, tVersion] = await client.readContract({address, abi: targetWeightsAbi, functionName: 'targetWeights'});
+    target = toTarget(tAssets, tBps, tVersion, (asset) => {
+      const held = holdings.find((h) => h.asset === getAddress(asset));
+      return held?.symbol ?? book.get(asset.toLowerCase())?.symbol ?? `${asset.slice(0, 6)}…${asset.slice(-4)}`;
+    });
+  } catch (error) {
+    if (isChainDown(error)) throw error;
+    // Reverted: this vault has no targetWeights() yet (see targetWeightsAbi).
+  }
 
   // Zero balances need no price, matching the contract's own valuation.
   const priced = holdings.filter((h) => h.amount !== '0');
@@ -121,6 +173,7 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
     holdings,
     totalValueUsd: total === null ? null : String(total),
     sharePriceUsd: sharePrice === null ? null : String(sharePrice),
+    target,
     position,
     pricedAt: Date.now(),
   };

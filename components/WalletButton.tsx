@@ -6,7 +6,7 @@ import {shortAddress} from '@/lib/domain/format';
 import {appChain, appChainLabel} from '@/lib/contracts/wagmi';
 
 const pill =
-  'ml-auto rounded-md border px-3 py-2 text-[12px] font-[650] sm:text-[13px] whitespace-nowrap';
+  'ml-auto shrink-0 rounded-md border px-[10px] py-2 text-[12px] font-[650] whitespace-nowrap sm:px-3 sm:text-[13px]';
 
 const subscribeNothing = () => () => {};
 
@@ -31,7 +31,11 @@ export function WalletButton() {
         onClick={() => injected && connect({connector: injected})}
         className={`${pill} border-ink-soft bg-ink-soft text-white hover:bg-ink-hover disabled:opacity-60`}
       >
-        {isPending ? 'Connecting…' : 'Connect wallet'}
+        {isPending ? 'Connecting…' : (
+          <>
+            Connect<span className="hidden sm:inline"> wallet</span>
+          </>
+        )}
       </button>
     );
   }
@@ -43,7 +47,8 @@ export function WalletButton() {
         onClick={() => switchChain({chainId: appChain.id})}
         className={`${pill} border-[#e6c27a] bg-[#fff6e3] text-[#7a5310]`}
       >
-        Switch to {appChainLabel}
+        <span className="sm:hidden">Wrong network</span>
+        <span className="hidden sm:inline">Switch to {appChainLabel}</span>
       </button>
     );
   }
@@ -55,7 +60,7 @@ export function WalletButton() {
       onClick={() => disconnect()}
       className={`${pill} border-pill-line bg-pill-bg text-ink`}
     >
-      <span className="mr-2 inline-block h-2 w-2 rounded-full bg-positive" />
+      <span className="mr-[6px] inline-block h-2 w-2 rounded-full bg-positive sm:mr-2" />
       {shortAddress(address!)}
     </button>
   );

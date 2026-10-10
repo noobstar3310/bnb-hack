@@ -13,7 +13,7 @@ import {appChainLabel} from '@/lib/contracts/wagmi';
 
 export default function Page() {
   const {isConnected} = useConnection();
-  const {data: vaults = [], isLoading, error} = useVaults();
+  const {data: vaults = [], isLoading, error, refetch, isFetching} = useVaults();
   const [mode, setMode] = useState<ViewMode>('explore');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [trade, setTrade] = useState<TradeType | null>(null);
@@ -55,7 +55,18 @@ export default function Page() {
             </h2>
 
             {error ? (
-              <Notice>Could not load vaults: {error.message}</Notice>
+              <Notice>
+                Could not load vaults. {error.message}
+                <br />
+                <button
+                  type="button"
+                  disabled={isFetching}
+                  onClick={() => refetch()}
+                  className="mt-3 rounded-[7px] border border-line-2 bg-white px-[13px] py-[10px] text-[14px] text-[#253b5c] disabled:opacity-50"
+                >
+                  {isFetching ? 'Retrying…' : 'Try again'}
+                </button>
+              </Notice>
             ) : isLoading ? (
               <Notice>Loading vaults from {appChainLabel}…</Notice>
             ) : mode === 'explore' ? (

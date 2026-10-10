@@ -6,7 +6,7 @@
  */
 import {getAddress, isAddress, type Address, type Hex} from 'viem';
 import {buildSwap, getSwapQuote} from '@/lib/binance/queries';
-import {ApiError, publicClient} from '@/lib/chain/server';
+import {ApiError, isChainDown, publicClient} from '@/lib/chain/server';
 import {assetRegistryAbi, folioVaultAbi} from '@/lib/contracts/abis';
 
 export const DEFAULT_SLIPPAGE_PERCENT = '1';
@@ -58,12 +58,12 @@ export async function buildTrade(params: TradeParams): Promise<BuiltTrade> {
   // The vault is the trader: Ondo market makers price for the address that sends the swap.
   const swapArgs = {fromTokenAddress: sell, toTokenAddress: buy, amount: params.amount, userWalletAddress: vault};
   const quotes = await getSwapQuote(swapArgs);
-  if (!quotes.ok) throw new ApiError(`Binance quote failed: ${quotes.error}`, 502);
+  if (!quotes.ok) throw new ApiError(`Could not get a Binance quote right now. (${quotes.error})`, 503);
   const best = quotes.data[0];
   if (!best) throw new ApiError('No route for this pair and size', 422);
 
   const swap = await buildSwap({...swapArgs, quoteId: best.quoteId, slippagePercent: slippage});
-  if (!swap.ok) throw new ApiError(`Binance swap build failed: ${swap.error}`, 502);
+  if (!swap.ok) throw new ApiError(`Could not build the Binance swap right now. (${swap.error})`, 503);
   const {tx} = swap.data;
 
   // A signed RFQ order cannot be executed by a contract; never hand one to the vault (spec §8.1).
@@ -103,8 +103,8 @@ async function contractWarnings(vault: Address, t: TradeRequest): Promise<string
       client.readContract({address: vault, abi: folioVaultAbi, functionName: 'registry'}),
       client.readContract({address: vault, abi: folioVaultAbi, functionName: 'heldAssets'}),
     ]);
-  } catch {
-    return [`${vault} is not a Folio vault on the configured chain`];
+  } catch (error) {
+    return [isChainDown(error) ? 'Could not check the vault on-chain: the blockchain node is not responding' : `${vault} is not a Folio vault on the configured chain`];
   }
 
   const [routerOk, buyOk] = await Promise.all([

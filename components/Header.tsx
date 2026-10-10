@@ -11,15 +11,18 @@ const TABS: {id: ViewMode; label: string}[] = [
 
 export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode) => void}) {
   return (
-    <header className="flex h-[72px] items-center gap-[12px] border-b border-line-3 bg-white px-[5%] xs:gap-[20px] sm:h-[88px] sm:gap-[56px]">
+    <header className="flex h-[72px] min-w-0 items-center gap-[12px] border-b border-line-3 bg-white px-[5%] xs:gap-[20px] sm:h-[88px] sm:gap-[56px]">
       <a
         href="#"
         className="flex items-center gap-2 text-[23px] font-[750] tracking-[-1px] text-ink no-underline sm:text-[28px]"
       >
-        <span className="hidden h-[30px] w-[28px] place-items-center rounded-[10px] bg-ink text-lime italic xs:grid sm:h-9 sm:w-9">
+        <span className="grid h-[30px] w-[28px] place-items-center rounded-[10px] bg-ink text-lime italic sm:h-9 sm:w-9">
           f
         </span>
-        folio<span className="-ml-[7px] font-normal text-muted-3">lab</span>
+        {/* The wordmark only fits beside the tabs and wallet button on wider screens. */}
+        <span className="hidden sm:inline">
+          folio<span className="-ml-[1px] font-normal text-muted-3">lab</span>
+        </span>
       </a>
 
       <nav aria-label="Main navigation" className="flex h-full gap-[14px] sm:gap-8">
