@@ -6,6 +6,7 @@ import {AccountBar} from '@/components/AccountBar';
 import {DetailPanel, type TradeType} from '@/components/DetailPanel';
 import {Header, type ViewMode} from '@/components/Header';
 import {PositionsList} from '@/components/PositionsList';
+import {ActivityFeed} from '@/components/ActivityFeed';
 import {StrategyCard} from '@/components/StrategyCard';
 import {TradeDialog} from '@/components/TradeDialog';
 import {useVaults} from '@/lib/contracts/hooks';
@@ -50,7 +51,11 @@ export default function Page() {
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-[minmax(0,1fr)_300px] md:grid-cols-[minmax(0,1fr)_330px] md:gap-[30px] lg:grid-cols-[minmax(0,1fr)_365px]">
           <section>
             <h2 className="mb-5 text-[20px] tracking-[-0.5px]">
-              {mode === 'explore' ? 'Explore vaults ' : 'My positions '}
+              {mode === 'explore'
+                ? 'Explore vaults '
+                : mode === 'positions'
+                  ? 'My positions '
+                  : 'Trading & Activity History '}
               {mode === 'explore' && <span className="pl-1 text-[15px] text-[#8a95a6]">{vaults.length}</span>}
             </h2>
 
@@ -85,7 +90,7 @@ export default function Page() {
               ) : (
                 <Notice>No vaults yet. Curators create them from the curator console.</Notice>
               )
-            ) : (
+            ) : mode === 'positions' ? (
               <PositionsList
                 vaults={vaults}
                 connected={isConnected}
@@ -94,6 +99,13 @@ export default function Page() {
                   select(address);
                 }}
                 onExplore={() => setMode('explore')}
+              />
+            ) : (
+              <ActivityFeed
+                vaults={vaults}
+                onSelectVault={(address) => {
+                  select(address);
+                }}
               />
             )}
 

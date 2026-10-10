@@ -2,11 +2,12 @@
 
 import {WalletButton} from './WalletButton';
 
-export type ViewMode = 'explore' | 'positions';
+export type ViewMode = 'explore' | 'positions' | 'activity';
 
 const TABS: {id: ViewMode; label: string}[] = [
   {id: 'explore', label: 'Explore'},
   {id: 'positions', label: 'My positions'},
+  {id: 'activity', label: 'Activity'},
 ];
 
 export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode) => void}) {

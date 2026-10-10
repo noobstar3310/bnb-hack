@@ -119,7 +119,7 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
                         managerAllowed={managerAllowed}
                       />
                     ) : (
-                      <ActivityPanel vaultName={selected.name} />
+                      <ActivityPanel vaultName={selected.name} vaultAddress={selected.address} />
                     )}
                   </div>
                 </>
@@ -147,7 +147,7 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
                 setMobileView('controls');
               }}
             />
-            {selected && <ActivityStrip vaultName={selected.name} onOpen={() => {
+            {selected && <ActivityStrip vaultName={selected.name} vaultAddress={selected.address} onOpen={() => {
                   setManagerTab('activity');
                   setMobileView('controls');
                 }} />}

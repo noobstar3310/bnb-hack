@@ -12,6 +12,7 @@ import {useConfig, useConnection} from 'wagmi';
 import {readContract, simulateContract, waitForTransactionReceipt, writeContract} from 'wagmi/actions';
 import type {VaultView} from '@/lib/vaults/read';
 import {erc20Abi, folioVaultAbi} from './abis';
+import {HISTORY_KEY} from '@/lib/history/hooks';
 
 export type {VaultView, Holding} from '@/lib/vaults/read';
 
@@ -131,7 +132,10 @@ export function useDeposit() {
         if (receipt.status !== 'success') throw new Error('The deposit transaction failed.');
 
         setStep('done');
-        await queryClient.invalidateQueries({queryKey: [VAULTS_KEY]});
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey: [VAULTS_KEY]}),
+          queryClient.invalidateQueries({queryKey: [HISTORY_KEY]}),
+        ]);
         return {shares: expected, amount};
       } catch (error) {
         setStep('idle');
@@ -184,7 +188,10 @@ export function useRedeem() {
         const hash = await writeContract(config, redeemCall(vault, shares, address, forfeit));
         const receipt = await waitForTransactionReceipt(config, {hash});
         if (receipt.status !== 'success') throw new Error('The withdrawal transaction failed.');
-        await queryClient.invalidateQueries({queryKey: [VAULTS_KEY]});
+        await Promise.all([
+          queryClient.invalidateQueries({queryKey: [VAULTS_KEY]}),
+          queryClient.invalidateQueries({queryKey: [HISTORY_KEY]}),
+        ]);
         return out;
       } finally {
         setPending(false);
