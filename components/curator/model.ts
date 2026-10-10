@@ -20,8 +20,22 @@ export interface TradeQuote {
     expectedBuyAmount: string;
     slippagePercent: string;
     route: string[];
+    lossPercent: number | null;
   };
+  gasLimit: string;
   warnings: string[];
+}
+
+export interface SignedPrices {
+  update: {
+    assets: Address[];
+    prices: string[];
+    timestamp: string;
+  };
+  signature: Hex;
+  /** Unix seconds after which the contract rejects this update. */
+  expiresAt: number;
+  quotes: {asset: Address; symbol: string; priceUsd: string}[];
 }
 
 export const STOCKS: readonly CuratorAsset[] = [
@@ -41,13 +55,11 @@ export function curatorAssets(vault: VaultView): CuratorAsset[] {
   );
 }
 
-/** Converts a percentage with at most two decimals to exact basis points. */
-export function percentageToBps(value: string): number | null {
-  const text = value.trim();
-  if (!/^\d{1,3}(\.\d{0,2})?$/.test(text)) return null;
-  const [wholeText, fractionText = ''] = text.split('.');
-  const bps = Number(wholeText) * 100 + Number(fractionText.padEnd(2, '0'));
-  return bps >= 0 && bps <= 10_000 ? bps : null;
+export const MAX_PLAN_BYTES = 1000;
+
+/** Solidity validates `bytes(plan).length`, so count encoded bytes rather than JS characters. */
+export function utf8ByteLength(value: string): number {
+  return new TextEncoder().encode(value).length;
 }
 
 export function sameAddress(left: string | undefined, right: string | undefined): boolean {

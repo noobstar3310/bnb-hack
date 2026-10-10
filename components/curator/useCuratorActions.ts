@@ -13,15 +13,12 @@ import {useChainId, useConfig, useConnection, type Config} from 'wagmi';
 import {readContract, simulateContract, waitForTransactionReceipt, writeContract} from 'wagmi/actions';
 import {erc20Abi, folioVaultAbi, vaultFactoryAbi} from '@/lib/contracts/abis';
 import {deploymentFor} from '@/lib/contracts/addresses';
-import type {TradeQuote} from './model';
 
 export type CuratorAction =
   | 'idle'
   | 'creating'
   | 'approving'
-  | 'seeding'
-  | 'publishing'
-  | 'rebalancing';
+  | 'seeding';
 
 async function successfulReceipt(config: Config, hash: Hex) {
   const receipt = await waitForTransactionReceipt(config, {hash});
@@ -45,22 +42,6 @@ export function useCuratorActions() {
     if (!address) throw new Error('Connect the curator wallet first.');
     return address;
   }, [address]);
-
-  const requireManager = useCallback(
-    async (vault: Address): Promise<Address> => {
-      const account = requireWallet();
-      const manager = await readContract(config, {
-        address: vault,
-        abi: folioVaultAbi,
-        functionName: 'manager',
-      });
-      if (getAddress(manager) !== getAddress(account)) {
-        throw new Error('Only this vault\'s manager can perform that action.');
-      }
-      return account;
-    },
-    [config, requireWallet],
-  );
 
   const createAndSeed = useCallback(
     async (name: string, symbol: string, amountText: string): Promise<Address> => {
@@ -149,67 +130,5 @@ export function useCuratorActions() {
     [chainId, config, refreshVaults, requireWallet],
   );
 
-  const publishWeights = useCallback(
-    async (vault: Address, assets: Address[], bps: number[]): Promise<void> => {
-      const account = await requireManager(vault);
-      setAction('publishing');
-      try {
-        const weights = bps.map((value) => value);
-        await simulateContract(config, {
-          address: vault,
-          abi: folioVaultAbi,
-          functionName: 'setTargetWeights',
-          args: [assets, weights],
-          account,
-        });
-        const hash = await writeContract(config, {
-          address: vault,
-          abi: folioVaultAbi,
-          functionName: 'setTargetWeights',
-          args: [assets, weights],
-        });
-        await successfulReceipt(config, hash);
-        await refreshVaults();
-      } finally {
-        setAction('idle');
-      }
-    },
-    [config, refreshVaults, requireManager],
-  );
-
-  const rebalance = useCallback(
-    async (vault: Address, built: TradeQuote): Promise<void> => {
-      const account = await requireManager(vault);
-      if (built.warnings.length) throw new Error('Resolve the quote warnings before signing.');
-      const trade = {
-        ...built.trade,
-        maxSellAmount: BigInt(built.trade.maxSellAmount),
-        minBuyAmount: BigInt(built.trade.minBuyAmount),
-      };
-
-      setAction('rebalancing');
-      try {
-        await simulateContract(config, {
-          address: vault,
-          abi: folioVaultAbi,
-          functionName: 'rebalance',
-          args: [trade],
-          account,
-        });
-        const hash = await writeContract(config, {
-          address: vault,
-          abi: folioVaultAbi,
-          functionName: 'rebalance',
-          args: [trade],
-        });
-        await successfulReceipt(config, hash);
-        await refreshVaults();
-      } finally {
-        setAction('idle');
-      }
-    },
-    [config, refreshVaults, requireManager],
-  );
-
-  return {action, createAndSeed, publishWeights, rebalance};
+  return {action, createAndSeed};
 }
