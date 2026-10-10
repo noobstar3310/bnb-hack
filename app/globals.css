@@ -33,6 +33,23 @@
   --color-panel-btn-line: #48556a;
   --color-panel-text: #afbbce;
 
+
+  /* Data-viz palette. Validated with the dataviz skill's checker against the
+     actual #ffffff chart surface: CVD ΔE 9.2, normal-vision ΔE 24.0, all pass.
+     Categorical slots are assigned in fixed order and never cycled. */
+  --color-series-1: #2a78d6;
+  --color-series-2: #eb6834;
+  --color-series-3: #1baf7a;
+  --color-diverge-pos: #2a78d6;
+  --color-diverge-neg: #d03b3b;
+  --color-diverge-mid: #f0efec;
+  --color-status-good: #0ca30c;
+  --color-status-warning: #fab219;
+  --color-status-critical: #d03b3b;
+  --color-grid: #e1e0d9;
+  --color-axis: #c3c2b7;
+  --color-ink-muted: #898781;
+
   --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
