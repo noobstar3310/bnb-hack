@@ -11,7 +11,7 @@ backend integration itself.
 
 1. Create a project at <https://web3.binance.com/en/dev-portal/project> and
    generate an API key + secret.
-2. `cp api/.env.example api/.env` and fill them in. `api/.env` is git-ignored.
+2. Put them in the repo-root `.env.local` (copy `.env.example`); the CLI reads it too. `api/.env` still works as a fallback.
 3. Optionally set `PROBE_ADDRESS` to any BSC wallet you want to inspect — it is
    only ever read.
 
@@ -86,7 +86,7 @@ That last one matters for the backend: a failed call is still `HTTP 200`.
 - **Transaction API and DeFi API are missing.** Their exact paths are not stated
   on any docs page that could be read. Add them from the REST reference rather
   than guessing.
-- **9 endpoints need `PROBE_ADDRESS` or `PROBE_TXHASH`** in `api/.env` before
+- **9 endpoints need `PROBE_ADDRESS` or `PROBE_TXHASH`** in `.env.local` before
   they will run. Any BSC address works; it is only read.
 - `leaderboard` accepts several `timeFrame`/`sortBy` integers; only `1` was
   confirmed. Map the rest if you need them.
@@ -108,7 +108,7 @@ bug in the app.
 
 Two ways to fix it:
 
-**In the project, no root needed.** Set `BINANCE_WEB3_DNS=1.1.1.1` in `api/.env`.
+**In the project, no root needed.** Set `BINANCE_WEB3_DNS=1.1.1.1` in `.env.local`.
 Requests then resolve through that server instead of the system resolver; TLS
 still validates against the real hostname, so nothing is weakened. This is what
 is currently enabled here, and it applies to both the CLI and the Next app.
