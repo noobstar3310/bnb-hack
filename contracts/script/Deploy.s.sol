@@ -20,7 +20,10 @@ contract Deploy is Script {
     address public constant BINANCE_ROUTER = 0xB44446b0c8E56988c34f7Ff73Ae904982b5FdDA5;
     address public constant AAPL_ON = 0x390a684EF9cADE28A7AD0DFa61AB1Eb3842618c4;
     address public constant NVDA_ON = 0xA9eE28C80f960B889dFbd1902055218cBa016F75;
-    address public constant MSFT_ON = 0x6Bfe75D1ad432050eA973C3A3DcD88F02e2444C3;
+    // Only stocks the Binance router filled within 1% at 200 and 1,000 USDT (fork survey, 10 Oct).
+    // MSFTon is left out: its route returned about $0 for 200 USDT.
+    address public constant AVGO_ON = 0x0ED2E3180EDf393e6bf8Db124bD15DDD54dE150A;
+    address public constant TSM_ON = 0xC37042A7a4fa510D8884a433762aB87257B91965;
 
     error NoDeployerAccount();
 
@@ -38,7 +41,8 @@ contract Deploy is Script {
         registry.setRouter(BINANCE_ROUTER, true);
         registry.setAsset(AAPL_ON, true);
         registry.setAsset(NVDA_ON, true);
-        registry.setAsset(MSFT_ON, true);
+        registry.setAsset(AVGO_ON, true);
+        registry.setAsset(TSM_ON, true);
         factory = new VaultFactory(registry);
         vm.stopBroadcast();
 

@@ -24,7 +24,8 @@ contract DeployTest is Test {
         assertTrue(registry.isRouter(script.BINANCE_ROUTER()));
         assertTrue(registry.isAsset(script.AAPL_ON()));
         assertTrue(registry.isAsset(script.NVDA_ON()));
-        assertTrue(registry.isAsset(script.MSFT_ON()));
+        assertTrue(registry.isAsset(script.AVGO_ON()));
+        assertTrue(registry.isAsset(script.TSM_ON()));
         assertFalse(registry.isAsset(script.BINANCE_ROUTER()), "a router must never also be an asset");
         assertEq(address(factory.registry()), address(registry));
     }

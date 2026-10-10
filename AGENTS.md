@@ -104,7 +104,7 @@ function rebalance(TradeRequest t, PriceUpdate prices, bytes signature) returns 
 event PlanPosted(uint64 indexed version, string plan);
 event Rebalanced(address indexed sellToken, address indexed buyToken, uint256 sold, uint256 bought, uint64 planVersion);
 ```
-Max 10 held tokens per vault (USDT included). A stock sold to zero leaves the held list; USDT never does.
+Max 10 held tokens per vault (USDT included). A stock sold down to dust (≤ 1/1,000,000 of a token) leaves the held list; USDT never does.
 
 **Signed prices (Part 2 → 3).** EIP-712, domain name `Folio Lab`, version `1`, chainId 56,
 verifyingContract = `AssetRegistry`. Type `PriceUpdate(address[] assets,uint256[] prices,uint64 timestamp)`.
@@ -127,14 +127,16 @@ real tokens and router) until the mainnet deploy, so nobody waits on real funds.
 - Stack: Next.js 16 + React 19 + Tailwind 4 (read the Next note at the top of this file); Foundry,
   Solidity 0.8.30, OpenZeppelin 5.7, EVM `cancun`. The PM prefers Vite + TanStack Start later; **stay on
   Next.js until after the deadline.**
-- Contracts: `cd contracts && forge test` (111 passing); the whole flow as a story:
+- Contracts: `cd contracts && forge test` (144 passing); the whole flow as a story:
   `forge test --match-contract SimulationTest -vv`. Full contract context: `contracts/README.md`.
 - Deposits trust backend-signed prices (no reliable on-chain price exists for these tokens on BSC). The
   price-signer key is a secret: only in env vars, never committed, never sent to the browser.
 - Binance Web3 API: errors come back as HTTP 200 with `success:false`; some Malaysian ISPs block its DNS
   (set `BINANCE_WEB3_DNS=1.1.1.1`). See `api/README.md`.
-- Liquidity is the real limit: TSLAon cannot fill 10,000 USDT; 11 tokens cannot quote at all. Allowlist
-  only tokens that quote at the demo's trade size.
+- Liquidity is the real limit. Fork survey (10 Oct), Binance route vs signed price at 200 / 1,000 USDT:
+  AAPLon, NVDAon, AVGOon, TSMon fill within 1% (the allowlist); GOOGLon only at 200; MSFTon returns ~$0;
+  AMZNon, AMDon, QQQon, SPYon lose 6–96%; METAon and TSLAon cannot quote. `/api/trade` warns when a quote
+  already loses more than the vault's 2% cap.
 - Never commit `.env` files or private keys. Never deploy with a raw private key; use
   `cast wallet import` keystores.
 - **The developer-experience report must be written by the team in their own words** — the organisers

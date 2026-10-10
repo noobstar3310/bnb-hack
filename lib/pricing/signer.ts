@@ -1,5 +1,5 @@
 /**
- * Builds and signs the EIP-712 `PriceUpdate` a vault's `deposit()` needs.
+ * Builds and signs the EIP-712 `PriceUpdate` a vault's `deposit()` and `rebalance()` need.
  *
  * Server-only: reads PRICE_SIGNER_PRIVATE_KEY. Import from Route Handlers, never from a client
  * component. The backend supplies prices only — the contract multiplies them by its own
@@ -39,9 +39,14 @@ function rules(): PriceRules {
   };
 }
 
-export async function signPricesForVault(vaultParam: string): Promise<SignedPrices> {
+/**
+ * @param include Extra tokens to price, for a `rebalance` that buys a stock the vault does not
+ *        hold yet. Each must be an approved asset in the registry.
+ */
+export async function signPricesForVault(vaultParam: string, include: string[] = []): Promise<SignedPrices> {
   if (!isAddress(vaultParam)) throw new ApiError('vault must be an address', 400);
   const vault = getAddress(vaultParam);
+  for (const a of include) if (!isAddress(a)) throw new ApiError('include must be a list of addresses', 400);
   const account = signer();
   const client = publicClient();
 
@@ -70,15 +75,22 @@ export async function signPricesForVault(vaultParam: string): Promise<SignedPric
     );
   }
 
-  // USDT is valued at par by the contract and needs no price.
-  const stocks = held.filter((a) => getAddress(a) !== getAddress(settlement));
+  // USDT is valued at par by the contract and needs no price. The contract uses the first match
+  // for an asset listed twice, so each appears once.
+  const extra = include.map((a) => getAddress(a)).filter((a) => a !== getAddress(settlement));
+  const allowed = await Promise.all(
+    extra.map((a) => client.readContract({address: registry, abi: assetRegistryAbi, functionName: 'isAsset', args: [a]})),
+  );
+  const notAllowed = extra.filter((_, i) => !allowed[i]);
+  if (notAllowed.length) throw new ApiError(`Not an approved asset: ${notAllowed.join(', ')}`, 400);
+  const stocks = [...new Set([...held.map((a) => getAddress(a)), ...extra])].filter((a) => a !== getAddress(settlement));
   const quotes: SignedPrices['quotes'] = [];
   const prices: bigint[] = [];
 
   if (stocks.length > 0) {
     const listing = await getRwaTokens();
     if (!listing.ok) {
-      throw new ApiError(`Live stock prices are unavailable right now, so deposits are paused. (${listing.error})`, 503);
+      throw new ApiError(`Live stock prices are unavailable right now, so deposits and trades are paused. (${listing.error})`, 503);
     }
     const bsc = new Map(
       listing.data
@@ -100,7 +112,7 @@ export async function signPricesForVault(vaultParam: string): Promise<SignedPric
     // One unpriced holding makes the contract revert anyway; refuse here with a reason instead.
     if (refused.length) {
       const which = refused.map((r) => `${bsc.get(r.asset.toLowerCase())?.tokenSymbol ?? r.asset}: ${r.reason}`).join('; ');
-      throw new ApiError(`Some holdings have no safe price right now, so deposits are paused. ${which}`, 503, refused);
+      throw new ApiError(`Some holdings have no safe price right now, so deposits and trades are paused. ${which}`, 503, refused);
     }
   }
 

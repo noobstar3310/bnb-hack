@@ -33,52 +33,35 @@ export interface VaultView {
   holdings: Holding[];
   totalValueUsd: string | null;
   sharePriceUsd: string | null;
-  /** The curator's published target allocation, or null until one is published on-chain. */
-  target: TargetAllocation | null;
+  /** The curator's published plan, or null until one is posted on-chain. */
+  plan: CuratorPlan | null;
   /** The requested account's stake, when an account was given. */
   position: {shares: string; valueUsd: string | null} | null;
   /** Unix ms when the prices were read. */
   pricedAt: number;
 }
 
-export interface TargetAllocation {
+/** Free text, never enforced by the contract; every `setPlan` bumps the version. */
+export interface CuratorPlan {
   version: number;
-  weights: {asset: Address; symbol: string; bps: number}[];
+  text: string;
 }
 
 type PriceBook = Map<string, {symbol: string; price: string | null}>;
 
 /**
- * PROPOSED read function for Part 1 (not in the contract yet). AGENTS.md plans setTargetWeights()
- * and a TargetWeightsSet event but no getter, and scanning event history is unreliable on BSC RPCs.
- * Until FolioVault has this view, the call reverts and the target reads as unpublished.
+ * FolioVault's plan getters (egg branch, 3a86e49). Not in `lib/contracts/abis.ts` until Part 1
+ * regenerates it after the deploy; switch to `folioVaultAbi` then and delete this.
  */
-const targetWeightsAbi = [
-  {
-    type: 'function',
-    name: 'targetWeights',
-    inputs: [],
-    outputs: [
-      {name: 'assets', type: 'address[]'},
-      {name: 'bps', type: 'uint16[]'},
-      {name: 'version', type: 'uint64'},
-    ],
-    stateMutability: 'view',
-  },
+export const vaultPlanAbi = [
+  {type: 'function', name: 'plan', inputs: [], outputs: [{name: '', type: 'string'}], stateMutability: 'view'},
+  {type: 'function', name: 'planVersion', inputs: [], outputs: [{name: '', type: 'uint64'}], stateMutability: 'view'},
 ] as const;
 
-/** Pairs the raw target arrays with display symbols; null when nothing has been published. */
-export function toTarget(
-  assets: readonly Address[],
-  bps: readonly number[],
-  version: bigint,
-  symbolOf: (asset: Address) => string,
-): TargetAllocation | null {
-  if (version === BigInt(0) || assets.length === 0 || assets.length !== bps.length) return null;
-  return {
-    version: Number(version),
-    weights: assets.map((asset, i) => ({asset: getAddress(asset), symbol: symbolOf(asset), bps: bps[i]})),
-  };
+/** Null while no plan has been posted (version 0). */
+export function toPlan(text: string, version: bigint): CuratorPlan | null {
+  if (version === BigInt(0)) return null;
+  return {version: Number(version), text};
 }
 
 /** Binance quotes for BSC, keyed by lowercase token address. Missing on API failure. */
@@ -137,16 +120,16 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
     }),
   );
 
-  let target: TargetAllocation | null = null;
+  let plan: CuratorPlan | null = null;
   try {
-    const [tAssets, tBps, tVersion] = await client.readContract({address, abi: targetWeightsAbi, functionName: 'targetWeights'});
-    target = toTarget(tAssets, tBps, tVersion, (asset) => {
-      const held = holdings.find((h) => h.asset === getAddress(asset));
-      return held?.symbol ?? book.get(asset.toLowerCase())?.symbol ?? `${asset.slice(0, 6)}…${asset.slice(-4)}`;
-    });
+    const [text, version] = await Promise.all([
+      client.readContract({address, abi: vaultPlanAbi, functionName: 'plan'}),
+      client.readContract({address, abi: vaultPlanAbi, functionName: 'planVersion'}),
+    ]);
+    plan = toPlan(text, version);
   } catch (error) {
     if (isChainDown(error)) throw error;
-    // Reverted: this vault has no targetWeights() yet (see targetWeightsAbi).
+    // Reverted: a vault deployed before setPlan existed has no plan getters.
   }
 
   // Zero balances need no price, matching the contract's own valuation.
@@ -173,7 +156,7 @@ export async function readVault(vaultParam: string, account?: Address, prices?: 
     holdings,
     totalValueUsd: total === null ? null : String(total),
     sharePriceUsd: sharePrice === null ? null : String(sharePrice),
-    target,
+    plan,
     position,
     pricedAt: Date.now(),
   };
@@ -194,8 +177,7 @@ export async function listVaults(account?: Address): Promise<VaultView[]> {
       client.readContract({address: factory, abi: vaultFactoryAbi, functionName: 'vaults', args: [BigInt(i)]}),
     ),
   );
-  // Dev only: vaults deployed outside the factory (the test harness that already holds stocks,
-  // until Part 1's rebalance lets a factory vault buy them). Comma-separated addresses.
+  // Dev only: vaults deployed outside the factory. Comma-separated addresses.
   const extra = (process.env.DEV_EXTRA_VAULTS ?? '').split(',').map((a) => a.trim()).filter((a) => isAddress(a));
   const book = await priceBook();
   const vaults = await Promise.all([...addresses, ...extra].map((a) => readVault(a, account, book)));

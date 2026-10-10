@@ -188,6 +188,25 @@ contract FolioVaultRebalanceTest is VaultFixture {
         assertEq(held[0], address(usdt));
     }
 
+    function test_rebalance_dustDonationCannotPinASoldStock() public {
+        _buyAapl(300e18, 1e18);
+        aapl.mint(address(vault), 1); // anyone can send 1 wei before the full sell
+
+        _trade(aapl, usdt, 1e18, 300e18);
+
+        address[] memory held = vault.heldAssets();
+        assertEq(held.length, 1, "a dust leftover counts as sold out");
+        assertEq(held[0], address(usdt));
+    }
+
+    function test_rebalance_aRealLeftoverKeepsTheStockHeld() public {
+        _buyAapl(300e18, 1e18);
+
+        _trade(aapl, usdt, 0.5e18, 150e18);
+
+        assertEq(vault.heldAssets().length, 2);
+    }
+
     function test_rebalance_usdtStaysHeldEvenAtZero() public {
         _trade(usdt, aapl, 1_000e18, 3e18);
 
@@ -306,6 +325,18 @@ contract FolioVaultRebalanceTest is VaultFixture {
         MockERC20 extra = new MockERC20("Extra", "XTR", 18);
         vm.prank(governance);
         registry.setAsset(address(extra), true);
+
+        _trade(stocks[0], extra, 1e18, 1e18);
+
+        assertEq(vault.heldAssets().length, vault.MAX_ASSETS());
+    }
+
+    function test_rebalance_atCapDustDonationCannotBlockASwap() public {
+        MockERC20[] memory stocks = _fillToCap();
+        MockERC20 extra = new MockERC20("Extra", "XTR", 18);
+        vm.prank(governance);
+        registry.setAsset(address(extra), true);
+        stocks[0].mint(address(vault), 1);
 
         _trade(stocks[0], extra, 1e18, 1e18);
 

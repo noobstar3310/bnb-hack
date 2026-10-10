@@ -44,22 +44,41 @@ send $USDT "approve(address,uint256)" "$V" 1000000000000000000000
 send "$V" "seed(uint256)" 100000000000000000000                    # 100 USDT
 send "$V" "activate()"
 
-# A second vault that already holds stocks. Factory vaults can only hold USDT until Part 1 builds
-# rebalance(), so this uses the test harness to stand in for the curator's trades.
-H=$(dep test/helpers/FolioVaultHarness.sol:FolioVaultHarness "$REG" $ME)
-send $USDT "approve(address,uint256)" "$H" 1000000000000000000000
-send "$H" "seed(uint256)" 1000000000000000000000                   # 1000 USDT
-send "$H" "activate()"
-send "$H" "sendOut(address,address,uint256)" $USDT 0x000000000000000000000000000000000000bEEF 600000000000000000000
-send $AAPL "mint(address,uint256)" "$H" 1000000000000000000         # 1 AAPLon
-send $NVDA "mint(address,uint256)" "$H" 1000000000000000000         # 1 NVDAon
-send $MSFT "mint(address,uint256)" "$H" 500000000000000000          # 0.5 MSFTon
-for t in $AAPL $NVDA $MSFT; do send "$H" "addHeldAsset(address)" $t; done
+# A second vault that already holds stocks, bought through a real rebalance(). A MockRouter
+# stands in for the Binance router: it takes the vault's USDT and mints the stock to it.
+ROUTER=$(forge create test/mocks/MockRouter.sol:MockRouter --rpc-url $RPC --private-key $PK --broadcast 2>&1 | awk '/Deployed to/{print $3}')
+send "$REG" "setRouter(address,bool)" "$ROUTER" true
+send "$FAC" "createVault(string,string,address)" "Folio Test" "fTST" $ME
+S=$(cast call --rpc-url $RPC "$FAC" "vaults(uint256)(address)" 1)
+send $USDT "approve(address,uint256)" "$S" 1000000000000000000000
+send "$S" "seed(uint256)" 1000000000000000000000                   # 1000 USDT
+send "$S" "activate()"
+send "$S" "setPlan(string)" "Hold Apple, Nvidia and Microsoft roughly equally by value. Keep about 30% in USDT."
+
+CHAIN_ID=$(cast chain-id --rpc-url $RPC)
+buy() { # buy <stock> <usdt in> <stock out> <signed price of one whole stock, USDT base units>
+  local calldata ts typed sig
+  calldata=$(cast calldata "swap(address,address,uint256,uint256,address)" $USDT "$1" "$2" "$3" "$S")
+  # The contract rejects a timestamp ahead of the chain, so sign at the latest block time.
+  ts=$(( $(cast block latest --rpc-url $RPC -f timestamp) - 1 ))
+  typed='{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},'
+  typed+='{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],'
+  typed+='"PriceUpdate":[{"name":"assets","type":"address[]"},{"name":"prices","type":"uint256[]"},{"name":"timestamp","type":"uint64"}]},'
+  typed+='"primaryType":"PriceUpdate","domain":{"name":"Folio Lab","version":"1","chainId":'$CHAIN_ID',"verifyingContract":"'$REG'"},'
+  typed+='"message":{"assets":["'$1'"],"prices":["'$4'"],"timestamp":'$ts'}}'
+  sig=$(cast wallet sign --private-key "$PRICE_SIGNER_PRIVATE_KEY" --data "$typed")
+  send "$S" "rebalance((address,address,address,uint256,uint256,bytes),(address[],uint256[],uint64),bytes)" \
+    "($ROUTER,$USDT,$1,$2,$3,$calldata)" "([$1],[$4],$ts)" "$sig"
+}
+buy $AAPL 250000000000000000000 1000000000000000000 250000000000000000000   # 250 USDT -> 1 AAPLon
+buy $NVDA 180000000000000000000 1000000000000000000 180000000000000000000   # 180 USDT -> 1 NVDAon
+buy $MSFT 260000000000000000000 500000000000000000 520000000000000000000    # 260 USDT -> 0.5 MSFTon
 
 echo "REGISTRY=$REG"
 echo "FACTORY=$FAC"
 echo "VAULT=$V"
+echo "STOCK_VAULT=$S"
 echo "state=$(cast call --rpc-url $RPC "$V" 'state()(uint8)') supply=$(cast call --rpc-url $RPC "$V" 'totalSupply()(uint256)')"
+echo "stock vault holds: $(cast call --rpc-url $RPC "$S" 'heldAssets()(address[])')"
 echo
-echo "Add to .env.local so the app lists the stock vault:"
-echo "DEV_EXTRA_VAULTS=$H"
+echo "Both vaults come from the factory, so DEV_EXTRA_VAULTS is no longer needed: clear it in .env.local."

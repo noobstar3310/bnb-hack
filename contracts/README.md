@@ -23,8 +23,8 @@ What the contracts guarantee:
 
 ## Status
 
-A vault can be created, seeded, deposited into, paused and withdrawn from today. Manager
-trading is the next build. All 111 Foundry tests pass.
+A vault can be created, seeded, deposited into, paused, traded by its manager and withdrawn
+from today. All 144 Foundry tests pass.
 
 **Not mainnet-ready.** Deposits trust backend-signed prices, and the adversarial review (SC-07)
 has not run.
@@ -34,9 +34,9 @@ has not run.
 | SC-02 | Registry, factory, vault, `seed`, `activate` | Built, reviewed |
 | SC-03 | Signed-price `deposit`, `pause` / `unpause` | Built, reviewed |
 | SC-05 | `redeem` and `redeemExcept` (withdraw in kind) | Built, reviewed |
-| SC-04 | Manager trading with balance checks (`rebalance`) | Not started |
+| SC-04 | Manager trading with balance checks (`rebalance`), `setPlan` | Built, AI-reviewed |
 | SC-06 | Replace manager, close a vault | Not started |
-| SC-07 | Invariant and adversarial tests, deploy scripts, ABI handoff | Not started |
+| SC-07 | Invariant and adversarial tests, deploy scripts, ABI handoff | Deploy script built; invariant tests not started |
 
 ## How it works
 
@@ -143,7 +143,7 @@ Then:
 cd contracts
 cp .env.example .env     # fill in RPC + Etherscan key
 forge build
-forge test               # expect 111 passing
+forge test               # expect 144 passing
 ```
 
 To see the whole flow as a story, run:
@@ -165,9 +165,9 @@ It prints ten chapters with seven actors:
 |---|---|
 | `src/` | `AssetRegistry.sol`, `VaultFactory.sol`, `FolioVault.sol` |
 | `test/` | Unit, fuzz and simulation tests |
-| `test/helpers/` | A test-only vault that fakes manager trades until SC-04, plus shared fixtures |
+| `test/helpers/` | Shared fixtures: a seeded vault, a mock router and a fair-trade helper |
 | `test/mocks/` | Mock tokens: configurable decimals, fee-on-transfer, reentrant, pausable |
-| `script/` | Deploy scripts (SC-07, empty for now) |
+| `script/` | `Deploy.s.sol`: registry, factory, signer, router and stock allowlist |
 | `../docs/superpowers/plans/` | Step-by-step build plans for each batch of work |
 
 ## Commands
@@ -261,17 +261,33 @@ cast wallet import deployer --interactive
 forge script script/<Name>.s.sol --rpc-url bsc_testnet --account deployer --broadcast --verify
 ```
 
+### BSC mainnet runbook
+
+Rehearsed end to end on a BSC fork on 10 October: deploy, create, seed, activate, `setPlan`, four
+real Binance swaps through `rebalance`, a full sell back to USDT, then an investor deposit and
+redeem (got back $100.0002 for $100).
+
+1. The deployer becomes registry owner **and** guardian (no timelock). Fund it with ~0.05 BNB.
+2. Dry run, no broadcast: `forge script script/Deploy.s.sol --rpc-url bsc --account deployer`.
+3. Broadcast: add `--broadcast --verify` (needs `ETHERSCAN_API_KEY`; one Etherscan V2 key covers BSC).
+4. Copy `REGISTRY` and `FACTORY` into `lib/contracts/addresses.ts` under chain 56, then
+   `forge build && cd .. && npm run abis`.
+5. Set `PRICE_SIGNER_PRIVATE_KEY` on the server to the key for `0x4508…2dE4` (the address in
+   `Deploy.s.sol`). On a fork, point the registry at a dev signer instead; the fork keeps chainId 56.
+6. Every new vault needs the guardian (the deployer) to call `activate()` after it is seeded.
+7. Send `rebalance` with a 1.5M gas limit (`/api/trade` returns it); real swaps used 755k–893k.
+
 ## Known issues (AI security review, 10 October 2026)
 
 A 3-pass AI review (36 agents) of `FolioVault`, `AssetRegistry`, `VaultFactory` and
-`Deploy.s.sol` found the issues below. **None is fixed yet**; they are accepted for the hackathon
+`Deploy.s.sol` found the issues below. **Only issue 2 is fixed**; the rest are accepted for the hackathon
 demo and must be fixed before real investor money. **Each issue, with its code location, fix and
 tests to add, is in [`KNOWN_ISSUES.md`](KNOWN_ISSUES.md).**
 
 | # | Issue | Who can do it | Planned fix |
 |---|---|---|---|
 | 1 | `rebalance` caps the loss of **each** trade at 2%, but not the total. A curator can trade back and forth many times and keep 2% each time (sandwich, own pool, or router fee field). | Manager | Cooldown between trades, or a daily loss budget |
-| 2 | A sold-out stock leaves `_held` only at a balance of exactly 0. Anyone can send 1 wei before a full sell, so the stock stays held: it keeps one of the 10 slots and every deposit needs its price. A 1-wei sell to clear it reverts with `BuyTooLow`. | Anyone | Treat a balance under a dust threshold as sold out |
+| 2 | **Fixed 10 Oct** (dust up to 1e-6 of a token counts as sold out). Was: a sold-out stock left `_held` only at a balance of exactly 0. Anyone can send 1 wei before a full sell, so the stock stays held: it keeps one of the 10 slots and every deposit needs its price. A 1-wei sell to clear it reverts with `BuyTooLow`. | Anyone | Treat a balance under a dust threshold as sold out |
 | 3 | Anyone can call `seed` on a new vault before its manager, so the manager's seed reverts. | Anyone | Manager-only `seed` (founder decision, see open decisions) |
 | 4 | A signed price stays valid for 60 s for any caller and vault. A depositor can use the lowest recent price, then `redeem` at once and keep the price move. | Anyone | Accept only the newest price per vault, or a minimum hold time |
 | 5 | `deposit` then an immediate `redeem` buys the vault's stock at the signed price with no fee or slippage; holders pay the DEX gap when the manager buys it back. | Anyone | Entry fee or minimum hold time (conflicts with "no exit delay", decision #11) |

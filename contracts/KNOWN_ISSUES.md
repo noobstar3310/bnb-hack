@@ -2,8 +2,8 @@
 
 Open security issues in `contracts/`, found by a 3-pass AI security review on 10 October 2026
 (36 review agents over `FolioVault`, `AssetRegistry`, `VaultFactory` and `script/Deploy.s.sol`).
-**None is fixed.** They were accepted for the hackathon demo and must be fixed before real
-investor money goes in.
+**Issue 2 is fixed (10 Oct, before the mainnet deploy); the rest are open.** They were accepted
+for the hackathon demo and must be fixed before real investor money goes in.
 
 Line numbers refer to the code as of the review. Search for the quoted code if they have moved.
 
@@ -11,7 +11,7 @@ Line numbers refer to the code as of the review. Search for the quoted code if t
 
 ```bash
 cd contracts
-forge build && forge test        # 141 tests should pass
+forge build && forge test        # 144 tests should pass
 ```
 
 - Read `contracts/README.md` first (how the vault works), then spec §6 in
@@ -29,7 +29,7 @@ forge build && forge test        # 141 tests should pass
 | # | Priority | Issue | Who can trigger it | Effort |
 |---|---|---|---|---|
 | 1 | **High** | Many 2%-loss trades add up with no limit | Manager | Small |
-| 2 | **High** | 1 wei of a sold stock keeps it in the held list forever | Anyone | Tiny |
+| 2 | ~~High~~ **Fixed** | 1 wei of a sold stock keeps it in the held list forever | Anyone | Done |
 | 3 | Medium | Anyone can seed a vault before its manager | Anyone | Tiny (founder decision) |
 | 4 | Medium | Deposit with an old signed price, then redeem at once | Anyone | Small, but a design choice |
 | 5 | Medium | Deposit then redeem buys stock at the signed price with no fee | Anyone | Small, but a design choice |
@@ -85,6 +85,11 @@ tests (for example `_fillToCap`). Add a `vm.warp` there, or those tests will hit
 ---
 
 ## 2. One wei of a sold stock keeps it in the held list forever
+
+**Fixed on 10 October.** A stock left with at most one millionth of a token after a sell
+(`DUST_DIVISOR = 1e6`, so 1e12 wei for an 18-decimal stock) now leaves `_held`. Tests:
+`test_rebalance_dustDonationCannotPinASoldStock`, `test_rebalance_atCapDustDonationCannotBlockASwap`,
+`test_rebalance_aRealLeftoverKeepsTheStockHeld`. The original finding follows for the record.
 
 **Where:** `src/FolioVault.sol` `rebalance`, line 313:
 
