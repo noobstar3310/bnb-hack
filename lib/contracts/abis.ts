@@ -741,6 +741,58 @@ export const folioVaultAbi = [
   },
   {
     "type": "function",
+    "name": "DUST_DIVISOR",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_ASSETS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_PLAN_LENGTH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MAX_TRADE_LOSS_BPS",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "activate",
     "inputs": [],
     "outputs": [],
@@ -956,6 +1008,115 @@ export const folioVaultAbi = [
   },
   {
     "type": "function",
+    "name": "plan",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "planVersion",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "rebalance",
+    "inputs": [
+      {
+        "name": "t",
+        "type": "tuple",
+        "internalType": "struct TradeRequest",
+        "components": [
+          {
+            "name": "router",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "sellToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "buyToken",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "maxSellAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minBuyAmount",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "callData",
+            "type": "bytes",
+            "internalType": "bytes"
+          }
+        ]
+      },
+      {
+        "name": "prices",
+        "type": "tuple",
+        "internalType": "struct PriceUpdate",
+        "components": [
+          {
+            "name": "assets",
+            "type": "address[]",
+            "internalType": "address[]"
+          },
+          {
+            "name": "prices",
+            "type": "uint256[]",
+            "internalType": "uint256[]"
+          },
+          {
+            "name": "timestamp",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "sold",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "bought",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "redeem",
     "inputs": [
       {
@@ -1047,6 +1208,19 @@ export const folioVaultAbi = [
         "internalType": "uint256"
       }
     ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "setPlan",
+    "inputs": [
+      {
+        "name": "text",
+        "type": "string",
+        "internalType": "string"
+      }
+    ],
+    "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -1257,6 +1431,62 @@ export const folioVaultAbi = [
   },
   {
     "type": "event",
+    "name": "PlanPosted",
+    "inputs": [
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "plan",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Rebalanced",
+    "inputs": [
+      {
+        "name": "sellToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "buyToken",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "sold",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "bought",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "planVersion",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "Redeemed",
     "inputs": [
       {
@@ -1357,6 +1587,27 @@ export const folioVaultAbi = [
   },
   {
     "type": "error",
+    "name": "AddressEmptyCode",
+    "inputs": [
+      {
+        "name": "target",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AssetNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AssetNotHeld",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "BelowMinimumSeed",
     "inputs": [
       {
@@ -1368,6 +1619,33 @@ export const folioVaultAbi = [
         "name": "minimum",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "BuyTooLow",
+    "inputs": [
+      {
+        "name": "bought",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "minBuy",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "CollateralDecreased",
+    "inputs": [
+      {
+        "name": "asset",
+        "type": "address",
+        "internalType": "address"
       }
     ]
   },
@@ -1469,6 +1747,32 @@ export const folioVaultAbi = [
   },
   {
     "type": "error",
+    "name": "FailedCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InsufficientBalance",
+    "inputs": [
+      {
+        "name": "balance",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "needed",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "InvalidPlanLength",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "MissingPrice",
     "inputs": [
       {
@@ -1480,7 +1784,17 @@ export const folioVaultAbi = [
   },
   {
     "type": "error",
+    "name": "NoPlanPosted",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotGuardian",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotManager",
     "inputs": []
   },
   {
@@ -1491,6 +1805,11 @@ export const folioVaultAbi = [
   {
     "type": "error",
     "name": "ReentrancyGuardReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RouterNotAllowed",
     "inputs": []
   },
   {
@@ -1506,6 +1825,22 @@ export const folioVaultAbi = [
   },
   {
     "type": "error",
+    "name": "SellExceeded",
+    "inputs": [
+      {
+        "name": "sold",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxSell",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "SlippageTooHigh",
     "inputs": [
       {
@@ -1515,6 +1850,27 @@ export const folioVaultAbi = [
       },
       {
         "name": "minShares",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "TooManyAssets",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TradeLossTooHigh",
+    "inputs": [
+      {
+        "name": "valueSold",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "valueBought",
         "type": "uint256",
         "internalType": "uint256"
       }
