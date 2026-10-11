@@ -79,7 +79,25 @@ export async function fetchHistory(options?: {
 }): Promise<HistoryResponse> {
   const client = publicClient();
   const latestBlock = await client.getBlockNumber();
-  const fromBlock = latestBlock > MAX_BLOCK_RANGE ? latestBlock - MAX_BLOCK_RANGE : BigInt(0);
+  let minBlock = latestBlock > MAX_BLOCK_RANGE ? latestBlock - MAX_BLOCK_RANGE : BigInt(0);
+
+  // When running on a local Anvil fork, local vault contracts only exist after the fork block.
+  // Querying blocks before the fork forces Anvil to query the remote upstream RPC for 45k blocks, which hangs/times out.
+  try {
+    const meta = (await client.request({method: 'anvil_metadata'} as any)) as {
+      forkedNetwork?: {forkBlockNumber?: number | string};
+    };
+    if (meta?.forkedNetwork?.forkBlockNumber != null) {
+      const forkBlock = BigInt(meta.forkedNetwork.forkBlockNumber);
+      if (forkBlock + BigInt(1) > minBlock) {
+        minBlock = forkBlock + BigInt(1);
+      }
+    }
+  } catch {
+    // Not Anvil or anvil_metadata unsupported
+  }
+
+  const fromBlock = minBlock > latestBlock ? latestBlock : minBlock;
 
   const vaultsMap = await getVaultsInfo(client, options?.vault);
   const targetAddresses = Array.from(vaultsMap.values()).map((v) => v.address);

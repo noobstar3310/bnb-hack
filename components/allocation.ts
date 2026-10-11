@@ -1,8 +1,5 @@
 import type {VaultView} from '@/lib/contracts/hooks';
-
-/** Fixed series order from the theme; cash is always the neutral grey. */
-const SERIES = ['var(--color-series-1)', 'var(--color-series-2)', 'var(--color-series-3)', '#8b67ac', '#c9a227'];
-const CASH = '#bec9d6';
+import {assetColor} from './curator/capitalMapModel';
 
 export interface Slice {
   symbol: string;
@@ -14,12 +11,11 @@ export interface Slice {
 /** Current allocation by value, from actual holdings (not the curator's target). */
 export function allocation(vault: VaultView): Slice[] {
   const total = vault.totalValueUsd === null ? null : Number(vault.totalValueUsd);
-  let next = 0;
   return vault.holdings
     .filter((h) => h.amount !== '0')
     .map((h) => ({
       symbol: h.symbol,
-      color: h.symbol === 'USDT' ? CASH : SERIES[next++ % SERIES.length],
+      color: assetColor(h.asset),
       percent: total && h.valueUsd !== null ? (Number(h.valueUsd) / total) * 100 : null,
     }));
 }

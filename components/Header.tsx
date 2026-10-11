@@ -1,76 +1,62 @@
 'use client';
 
 import Link from 'next/link';
+import {usePathname} from 'next/navigation';
 import {WalletButton} from './WalletButton';
 
-export type ViewMode = 'explore' | 'positions' | 'activity';
+const links = [
+  {href: '/explore', label: 'Explore'},
+  {href: '/portfolio', label: 'Portfolio'},
+  {href: '/curator', label: 'Curator'},
+] as const;
 
-const TABS: {id: ViewMode; label: string; icon?: string}[] = [
-  {id: 'explore', label: 'Explore'},
-  {id: 'positions', label: 'My Positions'},
-  {id: 'activity', label: 'Activity'},
-];
+export function Header() {
+  const pathname = usePathname();
 
-export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode) => void}) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-[5%] backdrop-blur-xl transition-all sm:h-18">
-      {/* Brand Mark */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/"
-          className="group flex items-center gap-2.5 text-[20px] font-bold tracking-tight text-slate-900 no-underline sm:text-[22px]"
-        >
-          <div className="relative grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 font-mono text-[16px] italic text-[#bef264] shadow-sm ring-1 ring-white/20 transition-transform group-hover:scale-[1.03] sm:h-9 sm:w-9 sm:rounded-2xl">
-            f
-            <span className="absolute inset-x-1.5 top-0.5 h-[1px] bg-white/30" />
-          </div>
-          <span className="tracking-[-0.03em]">
-            folio<span className="font-normal text-slate-400">lab</span>
-          </span>
+    <header className="sticky top-0 z-40 border-b border-[#cdd3ca]/80 bg-[#ebeee7]/92 backdrop-blur-xl">
+      <div className="site-container flex min-h-[68px] items-center gap-4">
+        <Link href="/" className="group flex shrink-0 items-center gap-2.5 text-[#2b3a30] no-underline">
+          <CompassMark />
+          <span className="font-editorial text-[19px] font-semibold tracking-[-0.035em] sm:text-[21px]">Folio Lab</span>
         </Link>
 
-        {/* Network Badge */}
-        <div className="hidden items-center gap-1.5 rounded-full border border-black/[0.05] bg-black/[0.02] px-2.5 py-0.5 text-[11px] font-medium text-slate-600 lg:flex">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#f3ba2f]" />
-          <span>BNB Chain</span>
-        </div>
+        <nav aria-label="Product navigation" className="ml-auto hidden items-center gap-1 sm:flex">
+          {links.map((link) => {
+            const active = pathname === link.href || (link.href === '/explore' && pathname.startsWith('/vaults/'));
+            return (
+              <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`rounded-full px-3.5 py-2 text-[12px] font-semibold no-underline transition ${active ? 'bg-[#2b3a30] text-[#f7f8f3]' : 'text-[#6b746c] hover:bg-[#2b3a30]/5 hover:text-[#2b3a30]'}`}>
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto min-w-0 shrink-0 sm:ml-2"><WalletButton /></div>
       </div>
 
-      {/* Apple-style Segmented Control */}
-      <nav aria-label="Main navigation" className="flex items-center rounded-full border border-black/[0.05] bg-slate-100/80 p-1 backdrop-blur-md shadow-inner">
-        {TABS.map((tab) => {
-          const active = mode === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              aria-current={active ? 'page' : undefined}
-              onClick={() => onMode(tab.id)}
-              className={`apple-press relative rounded-full px-3 py-1.5 text-[12px] tracking-tight sm:px-4 sm:text-[13px] ${
-                active
-                  ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
-                  : 'font-medium text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              {tab.label}
-            </button>
-          );
+      <nav aria-label="Mobile product navigation" className="site-container flex items-center gap-5 overflow-x-auto border-t border-[#cdd3ca]/60 py-2 sm:hidden">
+        {links.map((link) => {
+          const active = pathname === link.href || (link.href === '/explore' && pathname.startsWith('/vaults/'));
+          return <Link key={link.href} href={link.href} aria-current={active ? 'page' : undefined} className={`shrink-0 text-[11px] font-bold no-underline ${active ? 'text-[#2b3a30]' : 'text-[#747d75]'}`}>{link.label}</Link>;
         })}
       </nav>
-
-      {/* Actions: Curator Link + Wallet */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <Link
-          href="/curator"
-          className="apple-press hidden items-center gap-1.5 rounded-full border border-black/[0.08] bg-white/70 px-3.5 py-1.5 text-[12px] font-semibold tracking-tight text-slate-700 shadow-xs hover:border-black/[0.15] hover:bg-white hover:text-slate-950 sm:inline-flex"
-        >
-          <span>Curator Studio</span>
-          <span className="text-[10px] text-slate-400">↗</span>
-        </Link>
-
-        <WalletButton />
-      </div>
     </header>
   );
 }
 
+export function CompassMark({large = false}: {large?: boolean}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid shrink-0 place-items-center overflow-hidden rounded-[30%] bg-[#213a30] ring-1 ring-[#213a30]/15 transition-transform duration-200 group-hover:-rotate-2 group-hover:scale-[1.03] ${large ? 'h-12 w-12' : 'h-8 w-8'}`}
+    >
+      <svg viewBox="0 0 32 32" className="h-full w-full" fill="none">
+        <path d="M6.25 10.45 16 5.15l9.75 5.3L16 15.8 6.25 10.45Z" fill="#F4F3EA" />
+        <path d="M6.25 13.05 14.85 17.75v9.1l-8.6-4.72v-9.08Z" fill="#9EC8B8" />
+        <path d="m25.75 13.05-8.6 4.7v9.1l8.6-4.72v-9.08Z" fill="#E2B84F" />
+        <path d="m16 7.75 5.05 2.74L16 13.25l-5.05-2.76L16 7.75Z" fill="#213A30" fillOpacity=".18" />
+      </svg>
+    </span>
+  );
+}

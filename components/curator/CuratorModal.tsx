@@ -23,7 +23,7 @@ export function CuratorModal({open, title, children, onClose}: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-[#020813]/75 p-4 backdrop-blur-md transition-opacity"
+      className="fixed inset-0 z-50 grid place-items-center bg-[#243128]/35 p-3 backdrop-blur-md transition-opacity sm:p-4"
       role="presentation"
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
@@ -31,20 +31,18 @@ export function CuratorModal({open, title, children, onClose}: Props) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="max-h-[min(780px,calc(100dvh-32px))] w-full max-w-[530px] overflow-y-auto rounded-3xl border border-white/[0.12] bg-[#0c1626]/95 shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-2xl ring-1 ring-white/10"
+        className="folio-sheet max-h-[min(780px,calc(100dvh-24px))] w-full max-w-[530px] overflow-y-auto"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0c1626]/95 px-6 py-4.5 backdrop-blur-xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#cdd3ca] bg-[#fcfdf9]/95 px-6 py-5 backdrop-blur-xl">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#5dd7c4]/30 bg-[#5dd7c4]/10 px-2.5 py-0.5 text-[9px] font-bold tracking-[1.5px] text-[#5dd7c4] uppercase">
-              MANAGER ACTION
-            </div>
-            <h2 className="mt-1 text-[18px] font-bold tracking-tight text-white">{title}</h2>
+            <div className="eyebrow">Manager action</div>
+            <h2 className="font-editorial mt-1 text-[26px] font-medium tracking-[-0.035em] text-[#2b3a30]">{title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close dialog"
-            className="apple-press grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[18px] text-slate-300 hover:bg-white/20 hover:text-white"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#2b3a30]/5 text-[18px] text-[#6b746c] hover:bg-[#2b3a30]/10 hover:text-[#2b3a30]"
           >
             ×
           </button>

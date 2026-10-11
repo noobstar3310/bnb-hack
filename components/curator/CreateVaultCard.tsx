@@ -47,21 +47,21 @@ export function CreateVaultCard({connected, deploymentReady, action, onCreate, o
     }
   }
 
-  const inputClass = 'rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-[13px] text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-55';
+  const inputClass = 'folio-field text-[13px]';
 
   return (
     <section>
-      <p className="text-[13px] leading-[1.6] text-slate-400">
+      <p className="text-[13px] leading-[1.7] text-[#6b746c]">
         Your connected wallet becomes the curator. Vault deployment, USDT allowance, and seed deposit require three consecutive transaction signatures.
       </p>
       {connected && !deploymentReady && (
-        <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-[12px] leading-[1.6] text-amber-200">
+        <div className="mt-4 border-l-2 border-[#b18b15] pl-3 text-[12px] leading-[1.6] text-[#6f5c0d]">
           Vault creation is paused: published Registry, Factory and USDT contracts are pending for this chain.
         </div>
       )}
 
       <form onSubmit={submit} className="mt-5 grid gap-4.5">
-        <label className="grid gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-300">
+        <label className="grid gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#59645c]">
           Fund Name
           <input
             value={name}
@@ -72,7 +72,7 @@ export function CreateVaultCard({connected, deploymentReady, action, onCreate, o
             className={inputClass}
           />
         </label>
-        <label className="grid gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-300">
+        <label className="grid gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#59645c]">
           Share Token Symbol
           <input
             value={symbol}
@@ -83,26 +83,26 @@ export function CreateVaultCard({connected, deploymentReady, action, onCreate, o
             className={`${inputClass} uppercase`}
           />
         </label>
-        <label className="grid gap-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-300">
+        <label className="grid gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#59645c]">
           First Seed Deposit (USDT)
-          <div className="flex items-center rounded-2xl border border-white/10 bg-white/5 pr-4 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400">
+          <div className="flex items-center rounded-[14px] border border-[#aeb8ad] bg-[#fcfdf9]/70 pr-4 focus-within:border-[#2b3a30]">
             <input
               value={seed}
               onChange={(event) => setSeed(event.target.value)}
               inputMode="decimal"
               disabled={busy}
-              className="min-w-0 flex-1 border-0 bg-transparent px-4 py-3 text-[13px] text-white outline-none disabled:opacity-55"
+              className="min-w-0 flex-1 border-0 bg-transparent px-4 py-3 text-[13px] text-[#2b3a30] outline-none disabled:opacity-55"
             />
-            <span className="font-mono text-[11px] font-bold text-slate-400">USDT</span>
+            <span className="text-[11px] font-bold text-[#6b746c]">USDT</span>
           </div>
-          <span className="text-[11px] font-normal text-slate-400">
+          <span className="text-[11px] font-normal normal-case tracking-normal text-[#6b746c]">
             Minimum 10 USDT seed. You receive the initial 100% share of the vault.
           </span>
         </label>
         <button
           type="submit"
           disabled={!connected || !deploymentReady || busy}
-          className="apple-press mt-2 rounded-full border border-amber-400/40 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-5 py-3.5 text-[13px] font-bold text-slate-950 shadow-md hover:from-amber-300 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="folio-button-primary mt-2 w-full"
         >
           {!connected ? 'Connect Manager Wallet' : !deploymentReady ? 'Deployment Addresses Pending' : ACTION_LABEL[action] ?? 'Create & Seed Vault'}
         </button>

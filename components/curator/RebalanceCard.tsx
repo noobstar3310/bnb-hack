@@ -6,8 +6,8 @@ import {useNotify} from '@/components/Toast';
 import {explainError, type VaultView} from '@/lib/contracts/hooks';
 import {tokenAmount} from '@/lib/domain/format';
 import {CuratorModal} from './CuratorModal';
-import {REBALANCE_ABI_BLOCKER} from './dependencies';
 import {curatorAssets, type SignedPrices, type TradeQuote} from './model';
+import {type RebalanceStage, useCuratorActions} from './useCuratorActions';
 import {useTokenSymbols} from './useTokenSymbols';
 
 interface Props {
@@ -15,10 +15,11 @@ interface Props {
   managerAllowed: boolean;
 }
 
-const QUOTE_LIFETIME_MS = 20_000;
+const QUOTE_LIFETIME_MS = 60_000;
 
 export function RebalanceCard({vault, managerAllowed}: Props) {
   const notify = useNotify();
+  const {action, executeRebalance} = useCuratorActions();
   const assets = useMemo(() => curatorAssets(vault), [vault]);
   const sellable = vault.holdings.filter((holding) => holding.amount !== '0');
   const tokenSymbol = useTokenSymbols(assets);
@@ -35,6 +36,9 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [executionStage, setExecutionStage] = useState<RebalanceStage>('idle');
+  const [executionError, setExecutionError] = useState<string | null>(null);
+  const [transactionHash, setTransactionHash] = useState<string | null>(null);
 
   const active = vault.state === 'ACTIVE';
   const planReady = Boolean(vault.plan && vault.plan.version > 0);
@@ -43,6 +47,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
   const buyAsset = assets.find((asset) => asset.address === buy);
   const sellSymbol = sellHolding ? tokenSymbol(sellHolding.asset, sellHolding.symbol) : '';
   const buySymbol = buyAsset ? tokenSymbol(buyAsset.address, buyAsset.symbol) : '';
+  const executing = action === 'simulating' || action === 'rebalancing';
 
   useEffect(() => {
     if (!quote) return;
@@ -65,6 +70,9 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     setQuoteError(null);
     setPriceError(null);
     setConfirmOpen(false);
+    setExecutionStage('idle');
+    setExecutionError(null);
+    setTransactionHash(null);
   }
 
   function changeSell(value: Address) {
@@ -73,7 +81,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     clearPreparedTrade();
   }
 
-  async function prepareTrade() {
+  async function prepareTrade(keepModalOpen = false) {
     if (!sellHolding || !buyAsset) return notify('Choose different sell and buy tokens.');
     let rawAmount: bigint;
     try {
@@ -90,11 +98,15 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     setSigningPrices(true);
     setQuoteError(null);
     setPriceError(null);
-    setQuote(null);
-    setSignedPrices(null);
+    if (!keepModalOpen) {
+      setQuote(null);
+      setSignedPrices(null);
+      setConfirmOpen(false);
+    }
     setQuoteExpired(false);
     setPricesExpired(false);
-    setConfirmOpen(false);
+    setExecutionStage('idle');
+    setExecutionError(null);
 
     const tradeParams = new URLSearchParams({
       vault: vault.address,
@@ -137,6 +149,26 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     }
   }
 
+  async function confirmRebalance() {
+    if (!managerAllowed || !active || !planReady || !quote || !signedPrices || executing) return;
+    if (quoteExpired || pricesExpired || signedPrices.expiresAt * 1000 <= Date.now()) {
+      setPricesExpired(signedPrices.expiresAt * 1000 <= Date.now());
+      return notify('The quote package expired. Prepare a fresh quote before signing.');
+    }
+    setExecutionError(null);
+    setTransactionHash(null);
+    try {
+      const result = await executeRebalance(vault.address, quote, signedPrices, setExecutionStage);
+      setTransactionHash(result.hash);
+      notify(`Rebalance confirmed: ${sellSymbol} -> ${buySymbol}.`);
+    } catch (caught) {
+      const message = explainError(caught);
+      setExecutionStage('idle');
+      setExecutionError(message);
+      notify(message);
+    }
+  }
+
   const warnings = quote?.warnings ?? [];
   const priceIncludes = Array.from(new Set([sell, buy].filter((asset): asset is Address => Boolean(asset))));
   const expected = quote && buyAsset ? formatUnits(BigInt(quote.quote.expectedBuyAmount), buyAsset.decimals) : null;
@@ -144,20 +176,21 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
   const quoteStatus = !canQuote ? 'Blocked' : quoting ? 'Loading' : quoteError ? 'Error' : quoteExpired ? 'Expired' : quote ? 'Ready' : 'Not started';
   const priceStatus = !canQuote ? 'Blocked' : signingPrices ? 'Loading' : priceError ? 'Error' : pricesExpired ? 'Expired' : signedPrices ? 'Ready' : 'Not started';
   const prepared = Boolean(quote && signedPrices);
+  const isPackageExpired = !executing && executionStage !== 'confirmed' && (quoteExpired || pricesExpired);
 
   return (
     <section>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mb-1 text-[9px] font-[800] tracking-[1.6px] text-[#74839a]">REBALANCE</p>
-          <h2 className="text-[15px] font-[750] text-white">Build a live route</h2>
+          <p className="eyebrow mb-1">Rebalance</p>
+          <h2 className="font-editorial text-[25px] font-medium tracking-[-0.035em]">Build a live route</h2>
         </div>
         <StatusPill ok={active && planReady} label={active && planReady ? 'READY' : 'BLOCKED'} />
       </div>
-      <p className="mt-2 text-[11px] leading-[1.55] text-[#93a2b8]">Fetch a live route and signed prices, then review everything before wallet confirmation.</p>
+      <p className="mt-3 text-[11px] leading-[1.65] text-[#6b746c]">Fetch a live route and signed prices, then review everything before wallet confirmation.</p>
 
       {(!active || !planReady || !managerAllowed) && (
-        <div className="mt-3 rounded-lg border border-[#65303a] bg-[#28161e] p-2.5 text-[11px] leading-[1.5] text-[#ff9ba5]">
+        <div className="mt-4 border-l-2 border-[#a14343] pl-3 text-[11px] leading-[1.6] text-[#8f3e3e]">
           <strong className="block">Requirements not met</strong>
           {!managerAllowed && <span className="block">Connect this vault&apos;s manager wallet.</span>}
           {!active && <span className="block">Vault is {vault.state}; rebalancing requires ACTIVE.</span>}
@@ -171,7 +204,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
             <select
               value={sell}
               onChange={(event) => changeSell(event.target.value as Address)}
-              disabled={!canQuote || quoting}
+              disabled={!canQuote || quoting || executing}
               className={inputClass}
             >
               {sellable.map((holding) => (
@@ -188,7 +221,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
                 setBuy(event.target.value as Address);
                 clearPreparedTrade();
               }}
-              disabled={!canQuote || quoting}
+              disabled={!canQuote || quoting || executing}
               className={inputClass}
             >
               {assets.filter((asset) => asset.address !== sell).map((asset) => (
@@ -206,12 +239,12 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
             }}
             inputMode="decimal"
             placeholder="5"
-            disabled={!canQuote || quoting}
+            disabled={!canQuote || quoting || executing}
             className={inputClass}
           />
         </Field>
         <Field label="Max slippage">
-          <div className="flex rounded-lg border border-[#33445b] bg-[#07131f] pr-3 focus-within:border-[#f4cd3f]">
+          <div className="flex rounded-[14px] border border-[#aeb8ad] bg-[#fcfdf9]/70 pr-3 focus-within:border-[#2b3a30]">
             <input
               value={slippage}
               onChange={(event) => {
@@ -219,25 +252,25 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
                 clearPreparedTrade();
               }}
               inputMode="decimal"
-              disabled={!canQuote || quoting}
-              className="min-w-0 flex-1 bg-transparent px-3 py-[10px] text-[12px] text-white outline-none disabled:opacity-50"
+              disabled={!canQuote || quoting || executing}
+              className="min-w-0 flex-1 bg-transparent px-3 py-[10px] text-[12px] text-[#2b3a30] outline-none disabled:opacity-50"
             />
-            <span className="self-center font-mono text-[10px] text-[#76869d]">%</span>
+            <span className="self-center text-[10px] text-[#6b746c]">%</span>
           </div>
         </Field>
       </div>
 
       <button
         type="button"
-        onClick={prepared && !quoteExpired && !pricesExpired ? () => setConfirmOpen(true) : prepareTrade}
-        disabled={!canQuote || quoting || signingPrices || !sellHolding || !buyAsset}
-        className="mt-4 w-full rounded-lg border border-[#f2cf3d] bg-[#f2cf3d] px-4 py-3 text-[12px] font-[850] text-[#111827] transition hover:bg-[#ffe56e] disabled:cursor-not-allowed disabled:border-[#4d4627] disabled:bg-[#2b2819] disabled:text-[#817746]"
+        onClick={prepared && !quoteExpired && !pricesExpired ? () => setConfirmOpen(true) : () => void prepareTrade()}
+        disabled={!canQuote || quoting || signingPrices || executing || !sellHolding || !buyAsset}
+        className="folio-button-primary mt-5 w-full"
       >
         {quoting || signingPrices ? 'Fetching quote and signed prices…' : prepared && !quoteExpired && !pricesExpired ? 'Review prepared quote' : 'Prepare rebalance'}
       </button>
 
       {(quoteError || priceError) && (
-        <div role="alert" className="mt-3 rounded-lg border border-[#72323c] bg-[#2d1720] p-2.5 text-[11px] leading-[1.55] text-[#ff9ba5]">
+        <div role="alert" className="mt-4 border-l-2 border-[#a14343] pl-3 text-[11px] leading-[1.6] text-[#8f3e3e]">
           <strong className="block">Preparation failed</strong>
           {quoteError && <span className="block">Quote: {quoteError}</span>}
           {priceError && <span className="block">Signed prices: {priceError}</span>}
@@ -245,41 +278,39 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
       )}
 
       {(quoteExpired || pricesExpired) && (
-        <div role="alert" className="mt-3 rounded-lg border border-[#66541e] bg-[#261f10] p-2.5 text-[11px] leading-[1.55] text-[#e7d36d]">
+        <div role="alert" className="mt-4 border-l-2 border-[#b18b15] pl-3 text-[11px] leading-[1.6] text-[#6f5c0d]">
           The {quoteExpired && pricesExpired ? 'quote and signed prices have' : quoteExpired ? 'quote has' : 'signed prices have'} expired. Prepare a fresh package before confirmation.
         </div>
       )}
 
-      <details className="mt-4 rounded-lg border border-[#2a3c53] bg-[#091522]">
-        <summary className="cursor-pointer list-none px-3 py-3 text-[11px] font-[750] text-[#b8c5d5] marker:hidden">
+      <details className="mt-5 border-y border-[#cdd3ca]">
+        <summary className="cursor-pointer list-none py-3 text-[11px] font-bold text-[#3d4a41] marker:hidden">
           <span className="flex items-center justify-between gap-3">
             Transaction stages
-            <span className="font-mono text-[9px] text-[#70829a]">{prepared ? 'PACKAGE READY' : 'VIEW DETAILS'} ▾</span>
+            <span className="text-[9px] text-[#778078]">{prepared ? 'PACKAGE READY' : 'VIEW DETAILS'} ▾</span>
           </span>
         </summary>
-        <div className="border-t border-[#27394f] p-3" aria-live="polite">
+        <div className="border-t border-[#cdd3ca] py-3" aria-live="polite">
           <ol className="grid gap-2 text-[10px]">
             <Stage label="1. Binance quote" status={quoteStatus} />
             <Stage label={`2. Signed prices · include=${priceIncludes.join(',') || 'trade assets'}`} status={priceStatus} />
-            <Stage label={quote ? `3. Simulation · ${Number(quote.gasLimit).toLocaleString('en-US')} gas` : '3. Contract simulation'} status="Blocked by ABI" />
-            <Stage label="4. Manager wallet confirmation" status="Not started" />
-            <Stage label="5. On-chain result" status="Not started" />
+            <Stage label={quote ? `3. Simulation · ${Number(quote.gasLimit).toLocaleString('en-US')} gas` : '3. Contract simulation'} status={executionStage === 'simulating' ? 'Running' : executionStage === 'wallet' || executionStage === 'confirming' || executionStage === 'confirmed' ? 'Ready' : executionError ? 'Error' : 'Not started'} />
+            <Stage label="4. Manager wallet confirmation" status={executionStage === 'wallet' ? 'Waiting' : executionStage === 'confirming' || executionStage === 'confirmed' ? 'Ready' : executionError ? 'Error' : 'Not started'} />
+            <Stage label="5. On-chain result" status={executionStage === 'confirming' ? 'Confirming' : executionStage === 'confirmed' ? 'Confirmed' : executionError ? 'Error' : 'Not started'} />
           </ol>
-          <details className="mt-3 rounded-lg border border-[#5e5020] bg-[#231f12] p-2.5 text-[10px] leading-[1.55] text-[#dac66b]">
-            <summary className="cursor-pointer font-[750] text-[#f4d657]">Execution unavailable · technical detail</summary>
-            <p className="mt-1">{REBALANCE_ABI_BLOCKER}</p>
-          </details>
+          {executionError && <p role="alert" className="mt-3 border-l-2 border-[#a14343] pl-3 text-[10px] leading-[1.55] text-[#8f3e3e]">{executionError}</p>}
+          {transactionHash && <p className="mt-3 break-all border-l-2 border-[#237b68] pl-3 text-[10px] text-[#237b68]">Confirmed: {transactionHash}</p>}
         </div>
       </details>
 
-      <CuratorModal open={confirmOpen} title="Review rebalance quote" onClose={() => setConfirmOpen(false)}>
+      <CuratorModal open={confirmOpen} title="Review rebalance quote" onClose={() => !executing && setConfirmOpen(false)}>
         {quote && signedPrices ? (
           <div>
-            <div className="rounded-lg border border-[#2d435b] bg-[#081522] p-4">
+            <div className="border-y border-[#cdd3ca] py-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-mono text-[9px] text-[#74869e]">PROPOSED ROUTE</p>
-                  <p className="mt-1 text-[15px] font-[800] text-white">{sellSymbol} → {buySymbol}</p>
+                  <p className="eyebrow">Proposed route</p>
+                  <p className="mt-1 text-[15px] font-bold">{sellSymbol} → {buySymbol}</p>
                 </div>
                 <StatusPill ok={!quoteExpired && !pricesExpired} label={quoteExpired || pricesExpired ? 'EXPIRED' : 'FRESH'} />
               </div>
@@ -291,46 +322,66 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
                 <QuoteValue label="Slippage" value={`${quote.quote.slippagePercent}%`} />
                 <QuoteValue label="Price expiry" value={new Date(signedPrices.expiresAt * 1000).toLocaleTimeString()} />
               </div>
-              <div className="mt-4 border-t border-[#293b50] pt-3">
-                <p className="font-mono text-[9px] text-[#74869e]">ROUTE</p>
-                <p className="mt-1 break-words text-[11px] text-[#c5d0dd]">{quote.quote.route.join(' → ') || 'No route description returned'}</p>
+              <div className="mt-4 border-t border-[#cdd3ca] pt-3">
+                <p className="eyebrow">Route</p>
+                <p className="mt-1 break-words text-[11px] text-[#59645c]">{quote.quote.route.join(' → ') || 'No route description returned'}</p>
               </div>
             </div>
 
             {warnings.length > 0 ? (
-              <div className="mt-3 rounded-lg border border-[#66541e] bg-[#261f10] p-3 text-[11px] leading-[1.6] text-[#e7d36d]">
-                <strong className="block text-[#f4d657]">Backend warnings</strong>
+              <div className="mt-3 border-l-2 border-[#b18b15] pl-3 text-[11px] leading-[1.6] text-[#6f5c0d]">
+                <strong className="block">Backend warnings</strong>
                 <ul className="mt-1 list-disc pl-5">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
               </div>
             ) : (
-              <div className="mt-3 rounded-lg border border-[#225f58] bg-[#102b2a] p-3 text-[11px] text-[#72dfca]">The backend returned no warnings for this route.</div>
+              <div className="mt-3 border-l-2 border-[#237b68] pl-3 text-[11px] text-[#237b68]">The backend returned no warnings for this route.</div>
             )}
 
-            {(quoteExpired || pricesExpired) && <p className="mt-3 rounded-lg border border-[#66541e] bg-[#261f10] p-3 text-[11px] text-[#e7d36d]">This package expired. Close the dialog and prepare a fresh quote.</p>}
+            {isPackageExpired && (
+              <div className="mt-3 flex items-center justify-between gap-2 border-l-2 border-[#b18b15] pl-3 text-[11px] text-[#6f5c0d]">
+                <span>This quote package expired. Fetch a fresh live route:</span>
+                <button
+                  type="button"
+                  onClick={() => void prepareTrade(true)}
+                  disabled={quoting || signingPrices}
+                  className="folio-button-primary shrink-0 px-3 py-1 text-[11px]"
+                >
+                  {quoting || signingPrices ? 'Refreshing…' : 'Refresh Quote ↻'}
+                </button>
+              </div>
+            )}
 
-            <button type="button" disabled title={REBALANCE_ABI_BLOCKER} className="mt-4 w-full rounded-lg border border-[#4d4627] bg-[#2b2819] px-4 py-3 text-[12px] font-[850] text-[#817746] disabled:cursor-not-allowed">
-              Wallet confirmation unavailable
+            {executionError && <p role="alert" className="mt-3 border-l-2 border-[#a14343] pl-3 text-[11px] leading-[1.55] text-[#8f3e3e]">{executionError}</p>}
+            {transactionHash && <p className="mt-3 break-all border-l-2 border-[#237b68] pl-3 text-[10px] text-[#237b68]">Confirmed transaction: {transactionHash}</p>}
+
+            <button
+              type="button"
+              onClick={() => void confirmRebalance()}
+              disabled={!managerAllowed || isPackageExpired || executing || executionStage === 'confirmed'}
+              className="folio-button-primary mt-4 w-full"
+            >
+              {executionStage === 'simulating' ? 'Simulating contract call...' : executionStage === 'wallet' ? 'Confirm in manager wallet...' : executionStage === 'confirming' ? 'Waiting for on-chain confirmation...' : executionStage === 'confirmed' ? 'Rebalance confirmed' : isPackageExpired ? 'Package expired — click refresh above' : 'Confirm rebalance in wallet'}
             </button>
           </div>
         ) : (
-          <p className="text-[12px] text-[#92a2b7]">The quote package is no longer available. Close this dialog and prepare it again.</p>
+          <p className="text-[12px] text-[#6b746c]">The quote package is no longer available. Close this dialog and prepare it again.</p>
         )}
       </CuratorModal>
     </section>
   );
 }
 
-const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-[12px] font-medium text-white outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-50';
+const inputClass = 'folio-field text-[12px] font-medium';
 
 function Field({label, children}: {label: string; children: React.ReactNode}) {
-  return <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-300">{label}{children}</label>;
+  return <label className="grid gap-1.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#59645c]">{label}{children}</label>;
 }
 
 function QuoteValue({label, value}: {label: string; value: string}) {
   return (
     <div>
-      <span className="block font-mono text-[9px] uppercase tracking-[0.8px] text-slate-400">{label}</span>
-      <strong className="mt-1 block break-words text-[13px] font-bold text-white tabular-nums">{value}</strong>
+      <span className="block text-[9px] uppercase tracking-[0.08em] text-[#7b847c]">{label}</span>
+      <strong className="mt-1 block break-words text-[13px] font-bold text-[#2b3a30] tabular-nums">{value}</strong>
     </div>
   );
 }
@@ -338,8 +389,8 @@ function QuoteValue({label, value}: {label: string; value: string}) {
 function StatusPill({ok, label}: {ok: boolean; label: string}) {
   return (
     <span
-      className={`shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[9px] font-semibold ${
-        ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+      className={`shrink-0 rounded-full border px-2.5 py-1 text-[9px] font-semibold ${
+        ok ? 'border-[#7aa99d] bg-[#dfede8] text-[#237b68]' : 'border-[#c98e8e] bg-[#f2e3e3] text-[#a14343]'
       }`}
     >
       {label}
@@ -348,12 +399,12 @@ function StatusPill({ok, label}: {ok: boolean; label: string}) {
 }
 
 function Stage({label, status}: {label: string; status: string}) {
-  const positive = status === 'Ready';
+  const positive = status === 'Ready' || status === 'Confirmed';
   const warning = status === 'Expired' || status === 'Error' || status.includes('Blocked');
   return (
-    <li className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-      <span className="min-w-0 break-all text-slate-300">{label}</span>
-      <strong className={positive ? 'text-emerald-400' : warning ? 'text-rose-400' : 'text-slate-400'}>{status}</strong>
+    <li className="flex items-center justify-between gap-3 border-b border-[#cdd3ca] py-2">
+      <span className="min-w-0 break-all text-[#59645c]">{label}</span>
+      <strong className={positive ? 'text-[#237b68]' : warning ? 'text-[#a14343]' : 'text-[#7b847c]'}>{status}</strong>
     </li>
   );
 }

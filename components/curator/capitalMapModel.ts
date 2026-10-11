@@ -1,11 +1,11 @@
 import type {Holding} from '@/lib/contracts/hooks';
 
-const COLORS = ['#17d8bf', '#a86cff', '#ffb52f', '#4ca9ff', '#f36e9d', '#ff7f45', '#65d36e', '#d46fe0'];
+const COLORS = ['#4de5ca', '#a893ff', '#f1b94f', '#63adff', '#ef7898', '#ed8358', '#79d995', '#d47ee0'];
 const KNOWN_COLORS: Record<string, string> = {
-  '0x55d398326f99059ff775485246999027b3197955': '#17d8bf',
-  '0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4': '#a86cff',
-  '0xa9ee28c80f960b889dfbd1902055218cba016f75': '#ffb52f',
-  '0x6bfe75d1ad432050ea973c3a3dcd88f02e2444c3': '#4ca9ff',
+  '0x55d398326f99059ff775485246999027b3197955': '#4de5ca',
+  '0x390a684ef9cade28a7ad0dfa61ab1eb3842618c4': '#a893ff',
+  '0xa9ee28c80f960b889dfbd1902055218cba016f75': '#f1b94f',
+  '0x6bfe75d1ad432050ea973c3a3dcd88f02e2444c3': '#63adff',
 };
 
 export const SHARE_SCALE = BigInt(1_000_000);
