@@ -29,7 +29,7 @@ export function vaultReadError(error: unknown, address: string): ApiError {
 }
 
 export function publicClient() {
-  const url = process.env.CHAIN_RPC_URL || process.env.BSC_RPC_URL;
+  const url = process.env.CHAIN_RPC_URL || process.env.BSC_RPC_URL || (process.env.NODE_ENV === 'production' ? 'https://bsc-dataseed.bnbchain.org' : undefined);
   if (!url) throw new ApiError('CHAIN_RPC_URL is not configured', 500);
   return createPublicClient({transport: http(url)});
 }

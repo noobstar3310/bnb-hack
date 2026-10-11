@@ -14,7 +14,7 @@ export const appChain = target === 'bsc' ? bsc : foundry;
 /** What users see; viem calls the local chain "Foundry", which means nothing to them. */
 export const appChainLabel = appChain.id === bsc.id ? 'BNB Smart Chain' : 'Local test chain';
 
-const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? (process.env.NODE_ENV === 'production' ? undefined : 'http://127.0.0.1:8545');
+const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL ?? (process.env.NODE_ENV === 'production' ? 'https://bsc-dataseed.bnbchain.org' : 'http://127.0.0.1:8545');
 
 export const wagmiConfig = createConfig({
   chains: [appChain],
