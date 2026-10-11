@@ -15,7 +15,7 @@ interface Props {
   managerAllowed: boolean;
 }
 
-const QUOTE_LIFETIME_MS = 20_000;
+const QUOTE_LIFETIME_MS = 60_000;
 
 export function RebalanceCard({vault, managerAllowed}: Props) {
   const notify = useNotify();
@@ -81,7 +81,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     clearPreparedTrade();
   }
 
-  async function prepareTrade() {
+  async function prepareTrade(keepModalOpen = false) {
     if (!sellHolding || !buyAsset) return notify('Choose different sell and buy tokens.');
     let rawAmount: bigint;
     try {
@@ -98,11 +98,15 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
     setSigningPrices(true);
     setQuoteError(null);
     setPriceError(null);
-    setQuote(null);
-    setSignedPrices(null);
+    if (!keepModalOpen) {
+      setQuote(null);
+      setSignedPrices(null);
+      setConfirmOpen(false);
+    }
     setQuoteExpired(false);
     setPricesExpired(false);
-    setConfirmOpen(false);
+    setExecutionStage('idle');
+    setExecutionError(null);
 
     const tradeParams = new URLSearchParams({
       vault: vault.address,
@@ -172,6 +176,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
   const quoteStatus = !canQuote ? 'Blocked' : quoting ? 'Loading' : quoteError ? 'Error' : quoteExpired ? 'Expired' : quote ? 'Ready' : 'Not started';
   const priceStatus = !canQuote ? 'Blocked' : signingPrices ? 'Loading' : priceError ? 'Error' : pricesExpired ? 'Expired' : signedPrices ? 'Ready' : 'Not started';
   const prepared = Boolean(quote && signedPrices);
+  const isPackageExpired = !executing && executionStage !== 'confirmed' && (quoteExpired || pricesExpired);
 
   return (
     <section>
@@ -332,7 +337,19 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
               <div className="mt-3 rounded-lg border border-[#225f58] bg-[#102b2a] p-3 text-[11px] text-[#72dfca]">The backend returned no warnings for this route.</div>
             )}
 
-            {(quoteExpired || pricesExpired) && <p className="mt-3 rounded-lg border border-[#66541e] bg-[#261f10] p-3 text-[11px] text-[#e7d36d]">This package expired. Close the dialog and prepare a fresh quote.</p>}
+            {isPackageExpired && (
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-[#66541e] bg-[#261f10] p-3 text-[11px] text-[#e7d36d]">
+                <span>This quote package expired. Fetch a fresh live route:</span>
+                <button
+                  type="button"
+                  onClick={() => void prepareTrade(true)}
+                  disabled={quoting || signingPrices}
+                  className="apple-press shrink-0 rounded-full bg-amber-400 px-3 py-1 font-bold text-slate-950 hover:bg-amber-300 disabled:opacity-50"
+                >
+                  {quoting || signingPrices ? 'Refreshing…' : 'Refresh Quote ↻'}
+                </button>
+              </div>
+            )}
 
             {executionError && <p role="alert" className="mt-3 rounded-lg border border-[#72323c] bg-[#2d1720] p-3 text-[11px] leading-[1.55] text-[#ff9ba5]">{executionError}</p>}
             {transactionHash && <p className="mt-3 break-all rounded-lg border border-[#225f58] bg-[#102b2a] p-3 font-mono text-[10px] text-[#72dfca]">Confirmed transaction: {transactionHash}</p>}
@@ -340,10 +357,10 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
             <button
               type="button"
               onClick={() => void confirmRebalance()}
-              disabled={!managerAllowed || quoteExpired || pricesExpired || executing || executionStage === 'confirmed'}
+              disabled={!managerAllowed || isPackageExpired || executing || executionStage === 'confirmed'}
               className="apple-press mt-4 w-full rounded-full border border-amber-300 bg-amber-300 px-4 py-3 text-[12px] font-bold text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
             >
-              {executionStage === 'simulating' ? 'Simulating contract call...' : executionStage === 'wallet' ? 'Confirm in manager wallet...' : executionStage === 'confirming' ? 'Waiting for on-chain confirmation...' : executionStage === 'confirmed' ? 'Rebalance confirmed' : quoteExpired || pricesExpired ? 'Package expired' : 'Confirm rebalance in wallet'}
+              {executionStage === 'simulating' ? 'Simulating contract call...' : executionStage === 'wallet' ? 'Confirm in manager wallet...' : executionStage === 'confirming' ? 'Waiting for on-chain confirmation...' : executionStage === 'confirmed' ? 'Rebalance confirmed' : isPackageExpired ? 'Package expired — click refresh above' : 'Confirm rebalance in wallet'}
             </button>
           </div>
         ) : (
