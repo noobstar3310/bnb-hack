@@ -8,8 +8,8 @@
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {useCallback, useState} from 'react';
 import {BaseError, ContractFunctionRevertedError, UserRejectedRequestError, parseUnits, type Address, type Hex} from 'viem';
-import {useConfig, useConnection} from 'wagmi';
-import {readContract, simulateContract, waitForTransactionReceipt, writeContract} from 'wagmi/actions';
+import {useConfig, useConnection, type Config} from 'wagmi';
+import {getTransactionReceipt, readContract, simulateContract, waitForTransactionReceipt, writeContract} from 'wagmi/actions';
 import type {VaultView} from '@/lib/vaults/read';
 import {erc20Abi, folioVaultAbi} from './abis';
 import {HISTORY_KEY} from '@/lib/history/hooks';
@@ -17,6 +17,32 @@ import {HISTORY_KEY} from '@/lib/history/hooks';
 export type {VaultView, Holding} from '@/lib/vaults/read';
 
 const VAULTS_KEY = 'vaults';
+const RECEIPT_TIMEOUT_MS = 75_000;
+
+/**
+ * Waits for a successful receipt without leaving the UI in a permanent pending state.
+ * Some injected wallets stop forwarding subscription updates after the approval prompt;
+ * a direct receipt lookup recovers transactions that were mined during that gap.
+ */
+export async function waitForSuccessfulReceipt(config: Config, hash: Hex) {
+  let receipt;
+  try {
+    receipt = await waitForTransactionReceipt(config, {
+      hash,
+      pollingInterval: 1_000,
+      timeout: RECEIPT_TIMEOUT_MS,
+    });
+  } catch (waitError) {
+    try {
+      receipt = await getTransactionReceipt(config, {hash});
+    } catch {
+      throw waitError;
+    }
+  }
+
+  if (receipt.status !== 'success') throw new Error('The transaction failed on-chain.');
+  return receipt;
+}
 
 /** All vaults, with the connected wallet's position in each. Refreshes every 15 s. */
 export function useVaults() {
@@ -98,7 +124,7 @@ export function useDeposit() {
         if (allowance < amount) {
           setStep('approving');
           const hash = await writeContract(config, {address: usdt, abi: erc20Abi, functionName: 'approve', args: [vault, amount]});
-          await waitForTransactionReceipt(config, {hash});
+          await waitForSuccessfulReceipt(config, hash);
         }
 
         // Signed prices live 60 s, so fetch them only once the approval has landed.
@@ -128,8 +154,7 @@ export function useDeposit() {
           functionName: 'deposit',
           args: [amount, update, signed.signature, minShares],
         });
-        const receipt = await waitForTransactionReceipt(config, {hash});
-        if (receipt.status !== 'success') throw new Error('The deposit transaction failed.');
+        await waitForSuccessfulReceipt(config, hash);
 
         setStep('done');
         await Promise.all([
@@ -186,8 +211,7 @@ export function useRedeem() {
       try {
         const out = await preview(vault, shares, forfeit);
         const hash = await writeContract(config, redeemCall(vault, shares, address, forfeit));
-        const receipt = await waitForTransactionReceipt(config, {hash});
-        if (receipt.status !== 'success') throw new Error('The withdrawal transaction failed.');
+        await waitForSuccessfulReceipt(config, hash);
         await Promise.all([
           queryClient.invalidateQueries({queryKey: [VAULTS_KEY]}),
           queryClient.invalidateQueries({queryKey: [HISTORY_KEY]}),

@@ -3,6 +3,7 @@
 import {useMemo, useState} from 'react';
 import type {Address} from 'viem';
 import {useConnection} from 'wagmi';
+import {appChain} from '@/lib/contracts/wagmi';
 import {shortAddress} from '@/lib/domain/format';
 import {useHistory} from '@/lib/history/hooks';
 import type {ActivityItem, ActivityType} from '@/lib/history/types';
@@ -15,6 +16,15 @@ interface Props {
   onSelectVault?: (address: string) => void;
 }
 
+const filters: Array<{id: FilterCategory; label: string}> = [
+  {id: 'all', label: 'All activity'},
+  {id: 'mine', label: 'My activity'},
+  {id: 'deposit', label: 'Deposits'},
+  {id: 'withdraw', label: 'Withdrawals'},
+  {id: 'trades', label: 'Curator trades'},
+  {id: 'plans', label: 'Plans & seeds'},
+];
+
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms;
   const sec = Math.floor(diff / 1000);
@@ -23,31 +33,26 @@ function timeAgo(ms: number): string {
   if (min < 60) return `${min}m ago`;
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
+  return `${Math.floor(hr / 24)}d ago`;
 }
 
 function formatRealTime(ms: number): string {
-  const d = new Date(ms);
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const month = monthNames[d.getMonth()] ?? 'Oct';
-  const day = pad(d.getDate());
-  const year = d.getFullYear();
-  const hours = pad(d.getHours());
-  const minutes = pad(d.getMinutes());
-  const seconds = pad(d.getSeconds());
-  return `${month} ${day}, ${year} · ${hours}:${minutes}:${seconds}`;
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date(ms));
 }
 
 function formatDecimal(val: string, maxDecimals = 4): string {
-  const num = parseFloat(val);
-  if (isNaN(num)) return val;
+  const num = Number.parseFloat(val);
+  if (Number.isNaN(num)) return val;
   if (num === 0) return '0';
   if (num < 0.0001) return '<0.0001';
-  return num.toLocaleString('en-US', {
-    maximumFractionDigits: maxDecimals,
-  });
+  return num.toLocaleString('en-US', {maximumFractionDigits: maxDecimals});
 }
 
 export function ActivityFeed({vaults, onSelectVault}: Props) {
@@ -55,200 +60,155 @@ export function ActivityFeed({vaults, onSelectVault}: Props) {
   const [category, setCategory] = useState<FilterCategory>('all');
   const [selectedVault, setSelectedVault] = useState<string>('all');
   const [copiedTx, setCopiedTx] = useState<string | null>(null);
-
   const vaultAddress = selectedVault !== 'all' ? (selectedVault as Address) : undefined;
 
-  // Fetch all activities for the selected vault (or all vaults), cached and auto-refreshing every 3s
-  const {data: items = [], isLoading, error, refetch, isFetching} = useHistory({
-    vault: vaultAddress,
-  });
+  const {data: items = [], isLoading, error, refetch, isFetching} = useHistory({vault: vaultAddress});
 
-  // Filter items based on active category
   const filteredItems = useMemo(() => {
     const userLower = userAddress?.toLowerCase();
     switch (category) {
       case 'mine':
         if (!userLower) return [];
-        return items.filter((i) => 'investor' in i && (i.investor as string).toLowerCase() === userLower);
+        return items.filter((item) => 'investor' in item && item.investor.toLowerCase() === userLower);
       case 'withdraw':
-        return items.filter((i) => i.type === 'redeem');
+        return items.filter((item) => item.type === 'redeem');
       case 'deposit':
-        return items.filter((i) => i.type === 'deposit');
+        return items.filter((item) => item.type === 'deposit');
       case 'trades':
-        return items.filter((i) => i.type === 'rebalance');
+        return items.filter((item) => item.type === 'rebalance');
       case 'plans':
-        return items.filter((i) => i.type === 'plan' || i.type === 'seed');
-      case 'all':
+        return items.filter((item) => item.type === 'plan' || item.type === 'seed');
       default:
         return items;
     }
   }, [items, category, userAddress]);
 
-  const handleCopy = (txHash: string) => {
-    navigator.clipboard.writeText(txHash);
-    setCopiedTx(txHash);
-    setTimeout(() => setCopiedTx(null), 2000);
-  };
+  async function handleCopy(txHash: string) {
+    try {
+      await navigator.clipboard.writeText(txHash);
+      setCopiedTx(txHash);
+      window.setTimeout(() => setCopiedTx(null), 2_000);
+    } catch {
+      setCopiedTx(null);
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Top Controls & Category Filters */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        {/* Apple-style Segmented Filter Control */}
-        <div className="flex flex-wrap items-center gap-1 rounded-full border border-black/[0.05] bg-slate-100/80 p-1 backdrop-blur-md">
-          <button
-            type="button"
-            onClick={() => setCategory('all')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'all'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            All Activity
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCategory('mine')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'mine'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            My Activity
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCategory('withdraw')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'withdraw'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Withdrawals
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCategory('deposit')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'deposit'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Deposits
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCategory('trades')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'trades'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Curator Trades
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCategory('plans')}
-            className={`apple-press rounded-full px-3.5 py-1.5 text-[12px] transition-all sm:text-[13px] ${
-              category === 'plans'
-                ? 'bg-white font-semibold text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                : 'font-medium text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Plans & Seeds
-          </button>
+    <section className="overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
+      <header className="flex flex-col gap-3 border-b border-[#26374d] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div>
+          <span className="font-mono text-[8px] font-[800] tracking-[1.2px] text-[#56d8c7]">CONFIRMED ON-CHAIN EVENTS</span>
+          <h2 className="mt-1 text-[20px] font-[800] tracking-[-0.5px] text-[#f2f6fb]">Activity</h2>
+          <p className="mt-1 text-[11px] text-[#8295ac]">Quote previews never appear here.</p>
         </div>
-
-        {/* Vault Filter Dropdown & Live Status */}
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <select
             value={selectedVault}
-            onChange={(e) => setSelectedVault(e.target.value)}
+            onChange={(event) => setSelectedVault(event.target.value)}
             aria-label="Filter by vault"
-            className="apple-press rounded-full border border-black/[0.08] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-slate-700 shadow-2xs outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+            className="min-w-0 flex-1 rounded-md border border-[#344960] bg-[#08131f] px-3 py-2 text-[11px] font-[700] text-[#dce6f2] outline-none focus:border-[#f1cf3c] sm:max-w-[240px]"
           >
-            <option value="all">All Vaults</option>
-            {vaults.map((v) => (
-              <option key={v.address} value={v.address}>
-                {v.name} ({v.symbol})
+            <option value="all">All vaults</option>
+            {vaults.map((vault) => (
+              <option key={vault.address} value={vault.address}>
+                {vault.name} ({vault.symbol})
               </option>
             ))}
           </select>
-
           <button
             type="button"
             onClick={() => refetch()}
             disabled={isFetching}
-            title="Manual sync"
-            className="apple-press inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-white px-3.5 py-1.5 text-[12px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 disabled:opacity-50"
+            title="Refresh on-chain activity"
+            className="flex shrink-0 items-center gap-2 rounded-md border border-[#344960] bg-[#0a1624] px-3 py-2 text-[10px] font-[800] text-[#aebdce] hover:border-[#55708b] hover:text-white disabled:opacity-50"
           >
-            <span className={`inline-block h-2 w-2 rounded-full ${isFetching ? 'animate-ping bg-amber-500' : 'bg-emerald-500'}`} />
-            <span>Live Sync</span>
+            <span className={`h-2 w-2 rounded-full ${isFetching ? 'animate-pulse bg-[#f1cf3c]' : 'bg-[#43c9b8]'}`} />
+            LIVE
           </button>
+        </div>
+      </header>
+
+      <div className="border-b border-[#24354a] bg-[#091522] p-2.5 sm:px-4">
+        <div className="flex gap-1 overflow-x-auto rounded-lg bg-[#07111c] p-1">
+          {filters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setCategory(filter.id)}
+              className={`shrink-0 rounded-md px-3 py-2 text-[10px] font-[800] transition ${
+                category === filter.id
+                  ? 'bg-[#f1cf3c] text-[#101722] shadow-[0_4px_16px_rgba(241,207,60,0.18)]'
+                  : 'text-[#8194aa] hover:bg-[#112136] hover:text-[#e9f0f8]'
+              }`}
+            >
+              {filter.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Disconnected state when "My Activity" is selected */}
-      {category === 'mine' && !isConnected && (
-        <div className="rounded-2xl border border-black/[0.06] bg-white/80 p-8 text-center text-slate-600 shadow-sm backdrop-blur-md">
-          <p className="text-[15px] font-bold text-slate-900">Wallet not connected</p>
-          <p className="mt-1 text-[13px] text-slate-500">
-            Connect your browser wallet to view your personal deposit and redemption history.
-          </p>
-        </div>
-      )}
+      <div className="p-3 sm:p-4">
+        {category === 'mine' && !isConnected ? (
+          <EmptyState title="Wallet not connected" detail="Connect your wallet to filter deposits and withdrawals made by that address." />
+        ) : isLoading ? (
+          <div className="grid min-h-[210px] place-items-center rounded-lg border border-[#24374e] bg-[#091522] text-center">
+            <div>
+              <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#334a64] border-t-[#f1cf3c]" />
+              <p className="mt-3 text-[11px] text-[#8295ac]">Reading confirmed events...</p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="rounded-lg border border-[#6c3540] bg-[#28151c] p-5 text-[#f0a7af]">
+            <p className="text-[12px] font-[800]">Activity could not be loaded</p>
+            <p className="mt-1 break-words text-[10px] leading-5 text-[#c98791]">{error.message}</p>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <EmptyState title="No confirmed transactions" detail={emptyDetail(category)} />
+        ) : (
+          <div className="divide-y divide-[#24364c] overflow-hidden rounded-lg border border-[#293c53] bg-[#091522]">
+            {filteredItems.map((item) => (
+              <ActivityRow
+                key={item.id}
+                item={item}
+                onSelectVault={onSelectVault}
+                onCopy={handleCopy}
+                copied={copiedTx === item.txHash}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-12 text-center text-slate-500 shadow-sm">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-slate-800" />
-          <p className="mt-3 text-[13px] font-medium text-slate-600">Querying transaction events from BSC…</p>
-        </div>
-      ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50/80 p-8 text-center text-rose-800 shadow-sm">
-          <p className="text-[14px] font-bold">Failed to load activity logs</p>
-          <p className="mt-1 text-[12px]">{error.message}</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="rounded-2xl border border-black/[0.06] bg-white/80 p-12 text-center text-slate-500 shadow-sm backdrop-blur-md">
-          <p className="text-[15px] font-bold text-slate-900">No transactions recorded</p>
-          <p className="mt-1 text-[13px] text-slate-500">
-            {category === 'mine'
-              ? 'No deposits or redemptions recorded for this wallet in the selected vault.'
-              : category === 'withdraw'
-                ? 'No redemptions have occurred yet.'
-                : category === 'deposit'
-                  ? 'No deposits have been executed yet.'
-                  : category === 'trades'
-                    ? 'No curator rebalances have been executed yet.'
-                    : 'No on-chain events found for this filter.'}
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-black/[0.04] overflow-hidden rounded-2xl border border-black/[0.06] bg-white shadow-sm">
-          {filteredItems.map((item) => (
-            <ActivityRow
-              key={item.id}
-              item={item}
-              onSelectVault={onSelectVault}
-              onCopy={handleCopy}
-              copied={copiedTx === item.txHash}
-            />
-          ))}
-        </div>
-      )}
+function EmptyState({title, detail}: {title: string; detail: string}) {
+  return (
+    <div className="grid min-h-[210px] place-items-center rounded-lg border border-dashed border-[#31475f] bg-[#091522] px-6 text-center">
+      <div className="max-w-[430px]">
+        <div className="mx-auto grid h-9 w-9 place-items-center rounded-full border border-[#355069] bg-[#0e2032] font-mono text-[12px] text-[#56d8c7]">0</div>
+        <p className="mt-3 text-[13px] font-[800] text-[#dce6f2]">{title}</p>
+        <p className="mt-1 text-[11px] leading-5 text-[#7f92a9]">{detail}</p>
+      </div>
     </div>
   );
+}
+
+function emptyDetail(category: FilterCategory): string {
+  switch (category) {
+    case 'mine':
+      return 'This wallet has no deposits or withdrawals in the selected vault yet.';
+    case 'withdraw':
+      return 'No in-kind redemptions have been confirmed yet.';
+    case 'deposit':
+      return 'No deposits have been confirmed yet.';
+    case 'trades':
+      return 'No curator rebalances have been confirmed yet.';
+    case 'plans':
+      return 'No plan or seed events have been confirmed yet.';
+    default:
+      return 'No matching on-chain events were found.';
+  }
 }
 
 function ActivityRow({
@@ -262,159 +222,115 @@ function ActivityRow({
   onCopy: (tx: string) => void;
   copied: boolean;
 }) {
+  const isBsc = appChain.id === 56;
+
   return (
-    <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-slate-50/70 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5">
-      {/* Left: Badge + Main Description + Exact Real Timeframe */}
-      <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+    <article className="flex flex-col gap-3 p-3.5 transition hover:bg-[#0d1c2c] sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-4">
+      <div className="flex min-w-0 items-start gap-3">
         <ActivityBadge type={item.type} />
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <button
+              type="button"
               onClick={() => onSelectVault?.(item.vault)}
-              className="cursor-pointer text-[13px] font-bold text-slate-900 hover:text-blue-600 transition-colors"
+              className="text-left text-[12px] font-[800] text-[#edf3fa] hover:text-[#f1cf3c]"
             >
               {item.vaultName}
-            </span>
-            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-500">
-              {item.vaultSymbol}
-            </span>
-            <span className="text-[12px] text-slate-300">·</span>
-            {/* Real Exact Timeframe */}
-            <span className="font-mono text-[12px] font-medium text-slate-600">
-              {formatRealTime(item.timestamp)}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              ({timeAgo(item.timestamp)})
-            </span>
-            <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
-              Block #{item.blockNumber}
-            </span>
+            </button>
+            <span className="rounded border border-[#2c425a] bg-[#0c1b2a] px-1.5 py-0.5 font-mono text-[8px] text-[#8ea1b7]">{item.vaultSymbol}</span>
+            <span className="font-mono text-[9px] text-[#74879d]">{formatRealTime(item.timestamp)}</span>
+            <span className="text-[9px] text-[#52677f]">{timeAgo(item.timestamp)}</span>
           </div>
-
-          <div className="mt-1 text-[13px] text-slate-700">
-            {renderActivityContent(item)}
-          </div>
+          <div className="mt-1.5 text-[11px] leading-5 text-[#aebdce]">{renderActivityContent(item)}</div>
+          <span className="mt-1.5 inline-block font-mono text-[8px] text-[#52677f]">BLOCK {item.blockNumber}</span>
         </div>
       </div>
 
-      {/* Right: Block / Tx Hash Explorer Link */}
       <div className="flex shrink-0 items-center gap-2 self-end sm:self-center">
-        <a
-          href={`https://bscscan.com/tx/${item.txHash}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="View on BSCScan"
-          className="inline-flex items-center gap-1 font-mono text-[12px] font-medium text-slate-500 hover:text-slate-900"
-        >
-          {shortAddress(item.txHash)}
-          <span className="text-[10px]">↗</span>
-        </a>
+        {isBsc ? (
+          <a
+            href={`https://bscscan.com/tx/${item.txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View on BscScan"
+            className="font-mono text-[9px] text-[#8196ad] hover:text-[#f1cf3c]"
+          >
+            {shortAddress(item.txHash)} EXTERNAL
+          </a>
+        ) : (
+          <span title="Local test-chain transaction" className="font-mono text-[9px] text-[#71869e]">
+            {shortAddress(item.txHash)} LOCAL
+          </span>
+        )}
         <button
           type="button"
           onClick={() => onCopy(item.txHash)}
           title="Copy transaction hash"
-          className="apple-press rounded-full border border-black/[0.08] bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          className="rounded border border-[#344960] bg-[#0a1624] px-2 py-1 text-[9px] font-[800] text-[#9cafc3] hover:border-[#f1cf3c] hover:text-[#f1cf3c]"
         >
-          {copied ? '✓ Copied' : 'Copy'}
+          {copied ? 'COPIED' : 'COPY'}
         </button>
       </div>
-    </div>
+    </article>
   );
 }
 
 function ActivityBadge({type}: {type: ActivityType}) {
-  switch (type) {
-    case 'deposit':
-      return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-[14px] font-bold text-emerald-700 shadow-2xs">
-          ↓
-        </span>
-      );
-    case 'redeem':
-      return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-orange-200 bg-orange-50 text-[14px] font-bold text-orange-700 shadow-2xs">
-          ↑
-        </span>
-      );
-    case 'rebalance':
-      return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-purple-200 bg-purple-50 text-[14px] font-bold text-purple-700 shadow-2xs">
-          ⇄
-        </span>
-      );
-    case 'plan':
-      return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-[14px] font-bold text-blue-700 shadow-2xs">
-          📝
-        </span>
-      );
-    case 'seed':
-      return (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-teal-200 bg-teal-50 text-[14px] font-bold text-teal-700 shadow-2xs">
-          🌱
-        </span>
-      );
-  }
+  const styles: Record<ActivityType, {label: string; className: string}> = {
+    deposit: {label: 'IN', className: 'border-[#25685f] bg-[#0d302d] text-[#65dfce]'},
+    redeem: {label: 'OUT', className: 'border-[#754936] bg-[#2b1e17] text-[#f0a16f]'},
+    rebalance: {label: 'SWAP', className: 'border-[#55477f] bg-[#201b38] text-[#bca9ff]'},
+    plan: {label: 'PLAN', className: 'border-[#375876] bg-[#10263a] text-[#85c6f5]'},
+    seed: {label: 'SEED', className: 'border-[#53612d] bg-[#202812] text-[#c7dc67]'},
+  };
+  const style = styles[type];
+  return <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md border font-mono text-[7px] font-[900] ${style.className}`}>{style.label}</span>;
 }
 
 function renderActivityContent(item: ActivityItem) {
+  const strong = 'font-[800] text-[#e7eef7]';
   switch (item.type) {
     case 'deposit':
       return (
         <span>
-          Deposited <strong className="font-[650] text-ink">{formatDecimal(item.usdtAmount)} USDT</strong> →
-          Minted <strong className="font-[650] text-ink">{formatDecimal(item.sharesMinted)} shares</strong>
-          <span className="ml-1 text-[12px] text-muted-3">by {shortAddress(item.investor)}</span>
+          Deposited <strong className={strong}>{formatDecimal(item.usdtAmount)} USDT</strong> into the vault and minted{' '}
+          <strong className={strong}>{formatDecimal(item.sharesMinted)} shares</strong>
+          <span className="ml-1 text-[#71869e]">by {shortAddress(item.investor)}</span>
         </span>
       );
-
     case 'redeem':
       return (
         <span>
-          Redeemed <strong className="font-[650] text-ink">{formatDecimal(item.sharesBurned)} shares</strong> →
-          Payout:{' '}
-          {item.payouts.map((p, i) => (
-            <span key={p.asset}>
-              {i > 0 && <span className="mx-1 text-muted-3">+</span>}
-              <strong className="font-[650] text-ink">
-                {formatDecimal(p.amount)} {p.symbol}
-              </strong>
+          Redeemed <strong className={strong}>{formatDecimal(item.sharesBurned)} shares</strong> for{' '}
+          {item.payouts.map((payout, index) => (
+            <span key={payout.asset}>
+              {index > 0 && <span className="mx-1 text-[#63778f]">+</span>}
+              <strong className={strong}>{formatDecimal(payout.amount)} {payout.symbol}</strong>
             </span>
           ))}
-          <span className="ml-1 text-[12px] text-muted-3">by {shortAddress(item.investor)}</span>
+          <span className="ml-1 text-[#71869e]">by {shortAddress(item.investor)}</span>
         </span>
       );
-
     case 'rebalance':
       return (
         <span>
-          Curator Rebalance: Swapped{' '}
-          <strong className="font-[650] text-ink">
-            {formatDecimal(item.sellAmount)} {item.sellSymbol}
-          </strong>{' '}
-          →{' '}
-          <strong className="font-[650] text-ink">
-            {formatDecimal(item.buyAmount)} {item.buySymbol}
-          </strong>{' '}
-          <span className="rounded bg-[#f5f3ff] px-1.5 py-0.5 text-[11px] font-[600] text-[#6d28d9]">
-            Plan v{item.planVersion}
-          </span>
+          Curator swapped <strong className={strong}>{formatDecimal(item.sellAmount)} {item.sellSymbol}</strong> for{' '}
+          <strong className={strong}>{formatDecimal(item.buyAmount)} {item.buySymbol}</strong>{' '}
+          <span className="rounded border border-[#55477f] bg-[#201b38] px-1.5 py-0.5 text-[8px] font-[800] text-[#bca9ff]">PLAN V{item.planVersion}</span>
         </span>
       );
-
     case 'plan':
       return (
         <span>
-          Curator posted <strong className="font-[650] text-ink">Plan v{item.version}</strong>:{' '}
-          <span className="italic text-[#475569]">&ldquo;{item.planText}&rdquo;</span>
+          Curator published <strong className={strong}>plan v{item.version}</strong>:{' '}
+          <span className="italic text-[#91a4ba]">&ldquo;{item.planText}&rdquo;</span>
         </span>
       );
-
     case 'seed':
       return (
         <span>
-          Vault seeded with <strong className="font-[650] text-ink">{formatDecimal(item.usdtAmount)} USDT</strong> →
-          Minted <strong className="font-[650] text-ink">{formatDecimal(item.sharesMinted)} initial shares</strong>
+          Seeded with <strong className={strong}>{formatDecimal(item.usdtAmount)} USDT</strong> and minted{' '}
+          <strong className={strong}>{formatDecimal(item.sharesMinted)} initial shares</strong>
         </span>
       );
   }

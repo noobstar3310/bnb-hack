@@ -2,11 +2,11 @@
 
 import {formatUnits, parseUnits} from 'viem';
 import {useConfig, useConnection, useReadContract} from 'wagmi';
-import {waitForTransactionReceipt, writeContract} from 'wagmi/actions';
+import {writeContract} from 'wagmi/actions';
 import {money} from '@/lib/domain/format';
 import {erc20Abi} from '@/lib/contracts/abis';
 import {deploymentFor} from '@/lib/contracts/addresses';
-import type {VaultView} from '@/lib/contracts/hooks';
+import {waitForSuccessfulReceipt, type VaultView} from '@/lib/contracts/hooks';
 import {appChain, appChainLabel} from '@/lib/contracts/wagmi';
 import {useNotify} from './Toast';
 
@@ -38,9 +38,9 @@ export function AccountBar({vaults}: {vaults: VaultView[]}) {
   });
 
   const cash = balance.data === undefined ? null : Number(formatUnits(balance.data, 18));
-  const positions = vaults.filter((v) => v.position && v.position.shares !== '0');
-  const invested = positions.every((v) => v.position?.valueUsd !== null)
-    ? positions.reduce((sum, v) => sum + Number(v.position!.valueUsd), 0)
+  const positions = vaults.filter((vault) => vault.position && vault.position.shares !== '0');
+  const invested = positions.every((vault) => vault.position?.valueUsd !== null)
+    ? positions.reduce((sum, vault) => sum + Number(vault.position!.valueUsd), 0)
     : null;
   const total = cash !== null && invested !== null ? cash + invested : null;
 
@@ -48,7 +48,7 @@ export function AccountBar({vaults}: {vaults: VaultView[]}) {
     if (!address || !usdt) return;
     try {
       const hash = await writeContract(config, {address: usdt, abi: mintAbi, functionName: 'mint', args: [address, parseUnits('1000', 18)]});
-      await waitForTransactionReceipt(config, {hash});
+      await waitForSuccessfulReceipt(config, hash);
       await balance.refetch();
       notify('1,000 test USDT added to your wallet.');
     } catch {
@@ -58,68 +58,31 @@ export function AccountBar({vaults}: {vaults: VaultView[]}) {
 
   const show = (value: number | null) => (!address ? '—' : value === null ? 'Unavailable' : money(value));
   const cells = [
-    {label: 'Wallet Total', value: show(total), hint: 'USDT + Vault Positions'},
-    {label: 'USDT Available', value: show(cash), hint: 'Idle in your wallet'},
-    {label: 'Invested in Vaults', value: show(invested), hint: 'Active shares'},
+    {label: 'Wallet total', value: show(total)},
+    {label: 'USDT available', value: show(cash)},
+    {label: 'Invested', value: show(invested)},
+    {label: 'Positions', value: address ? String(positions.length) : '—'},
   ];
 
   return (
-    <section
-      aria-label="Your account"
-      className="relative mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 p-6 text-white shadow-[0_10px_35px_-5px_rgba(15,23,42,0.3)] ring-1 ring-white/10 sm:p-7 md:p-8"
-    >
-      {/* Apple specular hairline highlight */}
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-      {/* Ambient background glows */}
-      <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-      <div className="pointer-events-none absolute right-1/3 -bottom-24 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
-
-      <div className="relative z-10 grid grid-cols-2 gap-6 md:grid-cols-[1fr_1fr_1fr_1.35fr] md:gap-8">
-        {cells.map((cell) => (
-          <div key={cell.label} className="flex flex-col">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-              {cell.label}
-            </span>
-            <strong className="mt-1.5 text-[24px] font-bold tracking-tight text-white tabular-nums sm:text-[30px]">
-              {cell.value}
-            </strong>
-            <span className="mt-0.5 text-[11px] text-slate-500">
-              {cell.hint}
-            </span>
-          </div>
-        ))}
-
-        <div className="flex flex-col justify-between gap-3 md:border-l md:border-white/10 md:pl-8">
-          <div>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-              Settlement Network
-            </span>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              <strong className="text-[15px] font-semibold text-slate-200">
-                {appChainLabel}
-              </strong>
-            </div>
-          </div>
-
-          {isLocal ? (
-            <button
-              type="button"
-              disabled={!address}
-              onClick={faucet}
-              className="apple-press self-start rounded-full border border-[#bef264]/30 bg-[#bef264]/10 px-3.5 py-1.5 text-[12px] font-semibold text-[#bef264] shadow-xs hover:bg-[#bef264]/20 disabled:opacity-40"
-            >
-              + Mint 1,000 Test USDT
-            </button>
-          ) : (
-            <p className="text-[11px] leading-[1.5] text-slate-400">
-              Production assets on BSC. Valuations track Binance real-time order books.
-            </p>
-          )}
+    <section aria-label="Your account" className="mb-3 grid grid-cols-2 overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] sm:grid-cols-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
+      {cells.map((cell) => (
+        <div key={cell.label} className="border-b border-r border-[#24344a] px-4 py-3 last:border-r-0 sm:border-b-0">
+          <span className="block font-mono text-[8px] font-[800] tracking-[0.9px] text-[#71849b]">{cell.label.toUpperCase()}</span>
+          <strong className="mt-1.5 block truncate text-[16px] font-[800] tracking-[-0.4px] text-[#edf3fa] sm:text-[18px]">{cell.value}</strong>
         </div>
+      ))}
+
+      <div className="col-span-2 flex items-center justify-between gap-3 px-4 py-3 sm:col-span-4 lg:col-span-1 lg:min-w-[220px] lg:border-l lg:border-[#24344a]">
+        <div>
+          <span className="block font-mono text-[8px] font-[800] tracking-[0.9px] text-[#71849b]">NETWORK</span>
+          <strong className="mt-1.5 block text-[12px] text-[#cbd7e5]">{appChainLabel}</strong>
+        </div>
+        {isLocal && (
+          <button type="button" disabled={!address} onClick={faucet} className="rounded-md border border-[#66591d] bg-[#2b2610] px-3 py-2 text-[10px] font-[800] text-[#f2d568] hover:border-[#a98f27] disabled:opacity-40">
+            + Test USDT
+          </button>
+        )}
       </div>
     </section>
   );

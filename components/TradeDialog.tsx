@@ -100,26 +100,22 @@ export function TradeDialog({type, vault, onClose}: Props) {
     <dialog
       ref={ref}
       onClose={onClose}
-      className="m-auto max-h-[92vh] w-[490px] max-w-[calc(100vw-32px)] overflow-auto rounded-3xl border border-black/[0.08] bg-white p-6 text-slate-900 shadow-[0_30px_100px_rgba(15,23,42,0.25)] backdrop-blur-2xl sm:p-8"
+      className="m-auto max-h-[90vh] w-[480px] max-w-[calc(100vw-28px)] overflow-auto rounded-2xl border border-[#334b62] bg-[#0d1827] p-6 text-[#e8eef7] shadow-[0_30px_100px_rgba(0,0,0,0.65)] sm:p-7"
     >
       <form onSubmit={submit}>
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-3 border-b border-black/[0.05] pb-4">
+        <div className="mb-6 flex items-start justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full border border-black/[0.05] bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-              <span className={`h-1.5 w-1.5 rounded-full ${type === 'invest' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-              {type === 'invest' ? 'Deposit USDT' : 'In-Kind Redemption'}
-            </div>
-            <h2 className="mt-1.5 text-[20px] font-bold tracking-tight text-slate-950 sm:text-[22px]">
-              {vault.name}
-            </h2>
+            <p className="mb-3 font-mono text-[9px] font-[800] tracking-[1.7px] text-[#59d8c4]">
+              {type === 'invest' ? 'INVEST USDT' : 'WITHDRAW YOUR SHARE'}
+            </p>
+            <h2 className="text-[20px] font-[850] tracking-[-0.5px] text-white">{vault.name}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={busy || pending}
             aria-label="Close"
-            className="apple-press grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-[18px] text-slate-500 hover:bg-slate-200 hover:text-slate-800 disabled:opacity-40"
+            className="border-0 bg-transparent px-[3px] text-[28px] leading-none text-[#7f91a7] hover:text-white"
           >
             ×
           </button>
@@ -127,47 +123,37 @@ export function TradeDialog({type, vault, onClose}: Props) {
 
         {type === 'invest' ? (
           <>
-            <label htmlFor="amount" className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-              Deposit Amount
+            <label htmlFor="amount" className="mt-[17px] block text-[13px] font-semibold text-[#dce6f1]">
+              Amount in USDT
             </label>
-            <div className="relative mt-2 flex items-center rounded-2xl border border-black/[0.08] bg-slate-50/70 px-4 py-3 shadow-inner focus-within:border-slate-900 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900/10">
-              <span className="text-[28px] font-bold text-slate-400 sm:text-[32px]">$</span>
-              <input
-                id="amount"
-                name="amount"
-                type="number"
-                inputMode="decimal"
-                min={0.01}
-                step="any"
-                required
-                disabled={busy}
-                placeholder="100.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full border-0 bg-transparent px-2 text-[30px] font-bold tracking-tight text-slate-950 tabular-nums outline-none placeholder:text-slate-300 sm:text-[36px]"
-              />
-              <span className="shrink-0 rounded-full border border-black/[0.06] bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 shadow-2xs">
-                USDT
-              </span>
+            <input
+              id="amount"
+              name="amount"
+              type="number"
+              inputMode="decimal"
+              min={0.01}
+              step="any"
+              required
+              disabled={busy}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-[#355069] bg-[#081521] p-3 text-[28px] text-white outline-none focus:border-[#d9c239]"
+            />
+            <div className="my-5 rounded-lg border border-[#263b51] bg-[#091521] p-[14px]">
+              <Row label="Share price" value={sharePrice === null ? 'Unavailable' : money(sharePrice)} />
+              <Row label="Estimated shares" value={estShares === null ? '—' : estShares.toFixed(4)} />
+              <Row label="Fee" value="$0.00" />
             </div>
-
-            {/* Receipt Summary Card */}
-            <div className="my-5 rounded-2xl border border-black/[0.04] bg-slate-50/80 p-4 divide-y divide-black/[0.04]">
-              <Row label="Current Share NAV" value={sharePrice === null ? 'Unavailable' : money(sharePrice)} />
-              <Row label="Estimated Shares Received" value={estShares === null ? '—' : estShares.toFixed(4)} />
-              <Row label="Deposit Fee" value="$0.00 (0%)" valueClass="text-emerald-600 font-bold" />
-            </div>
-
-            <p className="text-[12px] leading-[1.6] text-slate-500">
-              Shares are priced via live Binance order books signed by the Folio oracle. You will sign two transactions: USDT ERC-20 approval, followed by on-chain deposit.
+            <p className="text-[12px] leading-[1.65] text-[#8396ad]">
+              Shares are priced from live stock prices signed by the Folio server and checked by the vault.
+              Your USDT stays in the vault until the curator invests it. You will sign up to two
+              transactions: a USDT approval and the deposit.
             </p>
           </>
         ) : (
           <>
-            <span className="block text-[12px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-              Redemption Percentage
-            </span>
-            <div className="mt-2 flex rounded-full border border-black/[0.06] bg-slate-100 p-1">
+            <span className="mt-[17px] block text-[13px] font-semibold text-[#dce6f1]">How much of your position</span>
+            <div className="mt-2 grid grid-cols-3 gap-2">
               {PERCENTS.map((p) => (
                 <button
                   key={p}
@@ -175,64 +161,49 @@ export function TradeDialog({type, vault, onClose}: Props) {
                   disabled={pending}
                   aria-pressed={percent === p}
                   onClick={() => setPercent(p)}
-                  className={`apple-press flex-1 rounded-full py-2 text-[13px] font-semibold transition-all ${
-                    percent === p
-                      ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/[0.04]'
-                      : 'text-slate-600 hover:text-slate-900'
+                  className={`rounded-[7px] border p-3 text-[15px] ${
+                    percent === p ? 'border-[#d8c13a] bg-[#2b2814] text-[#f2d568]' : 'border-[#31475d] bg-[#101e2e] text-[#aebdce]'
                   }`}
                 >
                   {p}%
                 </button>
               ))}
             </div>
-
-            {/* Redemption Output Receipt */}
-            <div className="my-5 rounded-2xl border border-black/[0.04] bg-slate-50/80 p-4">
-              <Row label="Shares to Burn" value={tokenAmount(redeemShares, 18, 4)} />
-              <div className="mt-3 border-t border-black/[0.05] pt-3">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-                  In-Kind Tokens Returning to Your Wallet
-                </span>
-                <div className="mt-2 space-y-1.5">
-                  {payout ? (
-                    payout.assets.map((asset, i) => {
-                      const h = symbolOf(asset);
-                      if (payout.amounts[i] === BigInt(0)) return null;
-                      const units = h ? Number(formatUnits(payout.amounts[i], h.decimals)) : null;
-                      const usd = units !== null && h?.priceUsd ? money(units * Number(h.priceUsd)) : '';
-                      return (
-                        <div key={asset} className="flex items-center justify-between text-[13px]">
-                          <span className="font-semibold text-slate-800">
-                            {tokenAmount(payout.amounts[i], h?.decimals ?? 18, 4)} {h?.symbol ?? asset}
-                          </span>
-                          <span className="font-medium text-slate-500 tabular-nums">{usd}</span>
-                        </div>
-                      );
-                    })
-                  ) : previewError ? (
-                    <p className="text-[12px] text-rose-600">
-                      {previewError} One holding may be paused by its token issuer. Tick below to forfeit and withdraw all other tokens.
-                    </p>
-                  ) : (
-                    <div className="flex items-center gap-2 text-[12px] text-slate-400 py-1">
-                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border border-slate-300 border-t-slate-700" />
-                      Simulating in-kind redemption…
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="my-5 rounded-lg border border-[#263b51] bg-[#091521] p-[14px]">
+              <Row label="Shares to burn" value={tokenAmount(redeemShares, 18, 6)} />
+              <p className="mb-1 mt-3 text-[12px] font-semibold text-[#dce6f1]">You receive in kind</p>
+              {payout ? (
+                payout.assets.map((asset, i) => {
+                  const h = symbolOf(asset);
+                  if (payout.amounts[i] === BigInt(0)) return null;
+                  const units = h ? Number(formatUnits(payout.amounts[i], h.decimals)) : null;
+                  const usd = units !== null && h?.priceUsd ? money(units * Number(h.priceUsd)) : '';
+                  return (
+                    <Row
+                      key={asset}
+                      label={`${tokenAmount(payout.amounts[i], h?.decimals ?? 18, 4)} ${h?.symbol ?? asset}`}
+                      value={usd}
+                    />
+                  );
+                })
+              ) : previewError ? (
+                <p className="text-[12px] text-[#ff9ba5]">
+                  {previewError} One of the vault&apos;s tokens may be paused by its issuer. Leave it behind below
+                  to withdraw everything else.
+                </p>
+              ) : (
+                <p className="text-[12px] text-[#8396ad]">Calculating…</p>
+              )}
             </div>
-
             {showForfeit || previewError ? (
-              <fieldset className="mb-4 rounded-2xl border border-black/[0.06] bg-slate-50/60 p-3.5">
-                <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">
-                  Leave Token Behind (Emergency Forfeit)
-                </legend>
-                <p className="mb-2 text-[11px] leading-[1.5] text-slate-500">
-                  If an underlying stock token transfer is paused by its issuer, leave it behind to redeem everything else.
+              <fieldset className="mb-4 rounded-lg border border-[#31475d] p-[14px]">
+                <legend className="px-1 text-[12px] font-semibold text-[#dce6f1]">Leave tokens behind</legend>
+                <p className="mb-2 text-[11px] leading-[1.5] text-[#8396ad]">
+                  Your share of a ticked token stays in the vault for the other holders. Use this only if a token
+                  cannot be transferred.
                 </p>
                 {leavable.map((h) => (
-                  <label key={h.asset} className="my-1 flex items-center gap-2 text-[13px] text-slate-700 font-medium">
+                  <label key={h.asset} className="my-1 flex items-center gap-2 text-[12px] text-[#cbd7e4]">
                     <input
                       type="checkbox"
                       disabled={pending}
@@ -240,7 +211,6 @@ export function TradeDialog({type, vault, onClose}: Props) {
                       onChange={(e) =>
                         setForfeit((list) => (e.target.checked ? [...list, h.asset] : list.filter((a) => a !== h.asset)))
                       }
-                      className="rounded accent-slate-900"
                     />
                     {h.symbol}
                   </label>
@@ -250,42 +220,39 @@ export function TradeDialog({type, vault, onClose}: Props) {
               <button
                 type="button"
                 onClick={() => setShowForfeit(true)}
-                className="mb-3 block text-[12px] font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+                className="mb-3 border-0 bg-transparent p-0 text-[12px] text-[#72dcca] hover:text-[#a1f0e2]"
               >
                 A token won&apos;t transfer? Leave it behind
               </button>
             )}
-
-            <p className="text-[12px] leading-[1.6] text-slate-500">
-              Guaranteed in-kind redemptions: you receive your mathematical percentage of every single stock token and cash held by the vault.
+            <p className="rounded-lg border border-[#29465a] bg-[#0b2230] p-3 text-[11px] leading-[1.65] text-[#9bb4c8]">
+              You get your exact share of every holding, in kind. That means stock tokens as well as
+              USDT. Selling those tokens is up to you. Withdrawals work even when the vault is paused.
             </p>
           </>
         )}
 
-        {error && (
-          <div role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-[12px] text-rose-700 font-medium">
-            {error}
-          </div>
-        )}
+        <p role="alert" className="mt-2 min-h-[18px] text-[12px] text-[#ff9ba5]">
+          {error}
+        </p>
 
-        {/* Prominent Action Button */}
         <button
           type="submit"
           disabled={busy || pending || (type === 'withdraw' && (redeemShares === BigInt(0) || !payout))}
-          className="apple-press mt-5 w-full rounded-full border border-slate-900 bg-gradient-to-b from-slate-800 to-slate-950 px-5 py-3.5 text-[14px] font-bold text-white shadow-sm hover:from-slate-700 hover:to-slate-900 disabled:opacity-50"
+          className="mt-3 w-full rounded-lg border border-[#e6c52d] bg-[#f2d23d] px-[18px] py-[13px] text-[12px] font-[900] text-[#111827] hover:bg-[#ffe768] disabled:opacity-45"
         >
-          {type === 'invest' ? STEP_LABEL[step] : pending ? 'Confirm in Wallet…' : 'Confirm In-Kind Withdrawal'}
+          {type === 'invest' ? STEP_LABEL[step] : pending ? 'Confirm in your wallet…' : 'Confirm withdrawal'}
         </button>
       </form>
     </dialog>
   );
 }
 
-function Row({label, value, valueClass = 'text-slate-900'}: {label: string; value: string; valueClass?: string}) {
+function Row({label, value}: {label: string; value: string}) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1 text-[13px]">
-      <span className="text-slate-500">{label}</span>
-      <strong className={`font-semibold tabular-nums ${valueClass}`}>{value}</strong>
+    <div className="my-[7px] flex items-center justify-between gap-[10px] text-[12px]">
+      <span className="text-[#7f92a9]">{label}</span>
+      <strong className="text-[#eaf0f7]">{value}</strong>
     </div>
   );
 }

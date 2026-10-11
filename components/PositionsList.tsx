@@ -11,78 +11,68 @@ interface Props {
 }
 
 export function PositionsList({vaults, connected, onSelect, onExplore}: Props) {
-  const owned = vaults.filter((v) => v.position && v.position.shares !== '0');
+  const owned = vaults.filter((vault) => vault.position && vault.position.shares !== '0');
 
-  if (!owned.length) {
+  if (!connected || !owned.length) {
     return (
-      <div className="rounded-2xl border border-black/[0.06] bg-white/80 p-8 text-center leading-[1.7] text-slate-600 shadow-sm backdrop-blur-md sm:p-12">
-        <h3 className="text-[17px] font-bold text-slate-900">
-          {connected ? 'No active positions yet' : 'Connect wallet to view your positions'}
-        </h3>
-        <p className="mt-1 text-[13px] text-slate-500">
-          {connected
-            ? 'When you deposit USDT into a vault, your transparent stock token shares will appear here.'
-            : 'Connect your browser wallet to inspect and redeem your vault holdings.'}
-        </p>
-        <button
-          type="button"
-          onClick={onExplore}
-          className="apple-press mt-5 rounded-full border border-slate-900 bg-slate-900 px-5 py-2.5 text-[13px] font-semibold text-white shadow-sm hover:bg-slate-800"
-        >
-          Explore Vaults
-        </button>
+      <div className="grid min-h-[320px] place-items-center rounded-xl border border-dashed border-[#344a62] bg-[#0c1726] px-6 py-10 text-center">
+        <div>
+          <span className="mx-auto grid h-12 w-12 place-items-center rounded-full border border-[#315267] bg-[#0e2633] text-[20px] text-[#65d9c6]">♟</span>
+          <h3 className="mt-4 text-[15px] font-[800] text-[#dce6f1]">{connected ? 'No positions yet' : 'Connect your wallet'}</h3>
+          <p className="mx-auto mt-2 max-w-[380px] text-[11px] leading-[1.7] text-[#7d90a8]">
+            {connected ? 'Vaults appear here only when this wallet has a positive current share balance.' : 'Your positions and investor territories are loaded for the connected address. A disconnected wallet is never treated as a zero balance.'}
+          </p>
+          <button type="button" onClick={onExplore} className="mt-5 rounded-lg border border-[#e6c52d] bg-[#f2d23d] px-4 py-2.5 text-[11px] font-[900] text-[#111827] hover:bg-[#ffe768]">
+            Explore vaults
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-3 lg:grid-cols-2">
       {owned.map((vault) => {
         const shares = BigInt(vault.position!.shares);
         const supply = BigInt(vault.totalSupply);
-        const ownership = supply === BigInt(0) ? 0 : Number((shares * BigInt(1_000_000)) / supply) / 10_000;
+        const ppm = supply > BigInt(0) ? Number(shares * BigInt(1_000_000) / supply) : null;
+        const ownership = ppm === null ? null : ppm / 10_000;
         return (
-          <article
-            key={vault.address}
-            className="rounded-2xl border border-black/[0.06] bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.03)] sm:p-6"
-          >
-            <div className="flex items-center justify-between">
+          <article key={vault.address} className="rounded-xl border border-[#26374d] bg-[#0d1827] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.18)]">
+            <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="text-[18px] font-bold tracking-tight text-slate-900">{vault.name}</h3>
-                <span className="font-mono text-[12px] font-semibold text-slate-400">{vault.symbol}</span>
+                <p className="font-mono text-[8px] font-[800] tracking-[1.2px] text-[#59d8c4]">ACTIVE POSITION</p>
+                <h3 className="mt-2 text-[16px] font-[820] text-white">{vault.name}</h3>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                {ownership.toFixed(2)}% of Vault
-              </span>
+              <span className="rounded-full border border-[#367166] bg-[#123a36] px-2.5 py-1 font-mono text-[8px] text-[#7be5d2]">YOU</span>
             </div>
 
-            <div className="my-4 divide-y divide-black/[0.04] rounded-xl bg-slate-50/80 p-3.5 border border-black/[0.04]">
-              <div className="flex items-center justify-between py-1.5 text-[13px]">
-                <span className="text-slate-500 font-medium">Estimated Value</span>
-                <strong className="text-[16px] font-bold text-slate-950 tabular-nums">
-                  {vault.position!.valueUsd === null ? 'Unavailable' : money(Number(vault.position!.valueUsd))}
-                </strong>
-              </div>
-              <div className="flex items-center justify-between py-1.5 text-[13px]">
-                <span className="text-slate-500 font-medium">Your Vault Shares</span>
-                <strong className="font-semibold text-slate-800 tabular-nums">
-                  {tokenAmount(shares, 18, 4)} shares
-                </strong>
-              </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <Metric label="Estimated value" value={vault.position!.valueUsd === null ? 'Unavailable' : money(Number(vault.position!.valueUsd))} />
+              <Metric label="Vault share" value={ownership === null ? 'Unavailable' : `${formatPercent(ownership)}%`} />
+              <div className="col-span-2"><Metric label="Shares" value={tokenAmount(shares, 18, 6)} /></div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => onSelect(vault.address)}
-              className="apple-press inline-flex items-center gap-1.5 rounded-full border border-black/[0.08] bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-800 shadow-2xs hover:bg-slate-100 hover:text-slate-950"
-            >
-              <span>Manage Position & Redeem</span>
-              <span className="text-[11px] text-slate-400">↗</span>
+            <p className="mt-3 text-[9px] leading-[1.55] text-[#788ba2]">The map territory uses this current share balance divided by total supply. It is not based on deposit history.</p>
+            <button type="button" onClick={() => onSelect(vault.address)} className="mt-4 w-full rounded-lg border border-[#31475e] bg-[#111f2f] px-3 py-2.5 text-[11px] font-[800] text-[#cbd7e4] hover:border-[#60768d] hover:text-white">
+              Select position
             </button>
           </article>
         );
       })}
     </div>
   );
+}
+
+function Metric({label, value}: {label: string; value: string}) {
+  return (
+    <div className="rounded-lg border border-[#22354a] bg-[#091521] px-3 py-2.5">
+      <span className="block font-mono text-[7px] tracking-[0.4px] text-[#6f839b]">{label.toUpperCase()}</span>
+      <strong className="mt-1 block truncate text-[12px] text-[#eef4fa]">{value}</strong>
+    </div>
+  );
+}
+
+function formatPercent(value: number) {
+  return value >= 0.01 && value < 99.99 ? value.toFixed(2).replace(/\.00$/, '') : value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
 }

@@ -12,203 +12,135 @@ interface Props {
   onTrade: (type: TradeType) => void;
 }
 
+const STATE_STYLE: Record<VaultView['state'], string> = {
+  ACTIVE: 'border-[#246158] bg-[#123a36] text-[#6ee7d1]',
+  PAUSED: 'border-[#66541e] bg-[#28210f] text-[#f2d568]',
+  SEEDED: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
+  DRAFT: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
+  CLOSED: 'border-[#69333d] bg-[#2a1820] text-[#ff9ba5]',
+};
+
 export function DetailPanel({vault, connected, onTrade}: Props) {
   const slices = allocation(vault);
-  const held = vault.holdings.filter((h) => h.amount !== '0');
+  const held = vault.holdings.filter((holding) => holding.amount !== '0');
   const hasShares = Boolean(vault.position && vault.position.shares !== '0');
-  // A holding without a live price makes the signed-price deposit impossible; say so up front.
-  const pricesMissing = held.some((h) => h.valueUsd === null);
+  const pricesMissing = held.some((holding) => holding.valueUsd === null);
   const acceptsDeposits = vault.state === 'ACTIVE' && !pricesMissing;
+  const shares = BigInt(vault.position?.shares ?? '0');
+  const supply = BigInt(vault.totalSupply);
+  const sharePpm = supply > BigInt(0) ? Number(shares * BigInt(1_000_000) / supply) : null;
+  const sharePercent = sharePpm === null ? null : sharePpm / 10_000;
 
   return (
-    <aside
-      aria-label="Selected vault"
-      className="static self-start rounded-3xl border border-black/[0.06] bg-white/95 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.03)] backdrop-blur-xl sm:sticky sm:top-24 sm:p-7"
-    >
-      {/* Header Info */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
-          Vault Inspector
-        </span>
-        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
-          {vault.symbol}
-        </span>
+    <aside aria-label="Selected vault" className="overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] shadow-[0_20px_70px_rgba(0,0,0,0.3)] md:sticky md:top-3">
+      <div className="border-b border-[#24344a] p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[8px] font-[800] tracking-[1.5px] text-[#59d8c4]">SELECTED VAULT</p>
+            <h2 className="mt-2 truncate text-[20px] font-[850] tracking-[-0.6px] text-white">{vault.name}</h2>
+            <p className="mt-1 font-mono text-[9px] text-[#7d90a8]">Manager {shortAddress(vault.manager)}</p>
+          </div>
+          <span className={`shrink-0 rounded border px-2 py-1 font-mono text-[8px] font-[800] ${STATE_STYLE[vault.state]}`}>{vault.state}</span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Metric label="Vault value" value={vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))} />
+          <Metric label="Share price" value={vault.sharePriceUsd === null ? 'Unavailable' : money(Number(vault.sharePriceUsd))} />
+        </div>
       </div>
 
-      <h2 className="mt-2 text-[22px] font-bold tracking-tight text-slate-900 sm:text-[24px]">
-        {vault.name}
-      </h2>
-      <p className="mt-1 text-[13px] text-slate-500">
-        Curator <span className="font-mono text-slate-600">{shortAddress(vault.manager)}</span> ·{' '}
-        <span className="capitalize">{vault.state.toLowerCase()}</span>
-      </p>
-
-      {/* Share Price Display */}
-      <div className="mt-5 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100/60 p-4.5 border border-black/[0.04]">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-          Share Net Asset Value
-        </span>
-        <div className="mt-1 flex items-baseline gap-2">
-          <span className="text-[32px] font-bold tracking-tight text-slate-950 tabular-nums sm:text-[36px]">
-            {vault.sharePriceUsd === null ? 'Unavailable' : money(Number(vault.sharePriceUsd))}
-          </span>
-          {vault.sharePriceUsd !== null && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </span>
-          )}
-        </div>
-        <p className="mt-1 text-[12px] text-slate-500">
-          Real-time unit valuation calculated from Binance signed order books.
-        </p>
-      </div>
-
-      <hr className="my-5 border-0 border-t border-black/[0.06]" />
-
-      {/* Holdings Breakdown */}
-      <div>
-        <div className="flex items-center justify-between">
-          <h3 className="text-[14px] font-bold tracking-tight text-slate-900">
-            Vault Portfolio Holdings
-          </h3>
-          <span className="text-[12px] font-semibold text-slate-500">
-            {held.length} {held.length === 1 ? 'Asset' : 'Assets'}
-          </span>
-        </div>
-
-        {/* Continuous Allocation Bar */}
-        <div className="my-3 flex h-2 w-full gap-1 overflow-hidden rounded-full bg-slate-100 p-0.5">
-          {slices.map((s) =>
-            s.percent === null ? null : (
-              <span
-                key={s.symbol}
-                style={{width: `${s.percent}%`, background: s.color}}
-                className="h-full rounded-full transition-all"
-              />
-            ),
-          )}
-        </div>
-
-        {/* Holdings List */}
-        <div className="mt-3 divide-y divide-black/[0.04]">
-          {held.map((h, i) => (
-            <div key={h.asset} className="flex items-center justify-between py-2.5 text-[13px]">
-              <span className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full" style={{background: slices[i]?.color ?? '#94a3b8'}} />
-                <span className="font-semibold text-slate-800">{h.symbol}</span>
-                <span className="text-slate-400 font-mono text-[12px]">
-                  ({tokenAmount(h.amount, h.decimals, 3)})
+      <div className="max-h-[calc(100dvh-260px)] overflow-y-auto p-4 [scrollbar-color:#344860_#0d1827] [scrollbar-width:thin] md:max-h-[calc(100dvh-150px)]">
+        <SectionTitle>Holdings</SectionTitle>
+        {slices.length > 0 && (
+          <div className="mb-4 mt-3 flex h-2 gap-[2px] overflow-hidden rounded bg-[#07111f]">
+            {slices.map((slice) => slice.percent === null ? null : <span key={slice.symbol} style={{width: `${slice.percent}%`, background: slice.color}} />)}
+          </div>
+        )}
+        <div className="space-y-2">
+          {held.length ? held.map((holding) => {
+            const slice = slices.find((entry) => entry.symbol === holding.symbol);
+            return (
+              <div key={holding.asset} className="flex items-center justify-between gap-3 rounded-lg border border-[#22354a] bg-[#091521] px-3 py-2.5 text-[11px]">
+                <span className="flex min-w-0 items-center gap-2 text-[#d7e1ec]">
+                  <i className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{background: slice?.color ?? '#63758b'}} />
+                  <span className="truncate">{holding.symbol}</span>
+                  <span className="font-mono text-[9px] text-[#6f849c]">{tokenAmount(holding.amount, holding.decimals, 4)}</span>
                 </span>
-              </span>
-              <strong className="font-semibold text-slate-900 tabular-nums">
-                {h.valueUsd === null ? 'No price' : money(Number(h.valueUsd))}
-              </strong>
-            </div>
-          ))}
-
-          <div className="flex items-center justify-between pt-3 text-[14px]">
-            <span className="font-semibold text-slate-600">Total Portfolio Value</span>
-            <strong className="text-[16px] font-bold text-slate-950 tabular-nums">
-              {vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))}
-            </strong>
-          </div>
+                <strong className="shrink-0 text-[#f0f4f8]">{holding.valueUsd === null ? 'No price' : money(Number(holding.valueUsd))}</strong>
+              </div>
+            );
+          }) : <EmptyLine>No assets held yet.</EmptyLine>}
         </div>
 
-        {pricesMissing ? (
-          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-[12px] leading-[1.5] text-amber-900">
-            <strong>Deposits paused:</strong> Live prices are unavailable for some holdings right now. Redemptions remain enabled.
-          </div>
-        ) : (
-          <p className="mt-2 text-[12px] leading-[1.5] text-slate-400">
-            Idle USDT sits in the smart contract until the manager executes an allowlisted stock rebalance.
+        {pricesMissing && (
+          <p className="mt-3 rounded-lg border border-[#66541e] bg-[#28210f] p-3 text-[10px] leading-[1.6] text-[#e0ca68]">
+            At least one non-zero holding has no live price. Total value, allocation and deposits remain unavailable; withdrawals still work.
           </p>
         )}
-      </div>
 
-      <hr className="my-5 border-0 border-t border-black/[0.06]" />
+        <div className="my-4 border-t border-[#24344a]" />
 
-      {/* Curator Plan */}
-      <div>
-        <div className="flex items-center justify-between">
-          <h3 className="text-[14px] font-bold tracking-tight text-slate-900">
-            Curator Investment Plan
-          </h3>
-          {vault.plan && (
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-semibold text-slate-600">
-              v{vault.plan.version}
-            </span>
-          )}
+        <div className="flex items-center justify-between gap-3">
+          <SectionTitle>Published plan</SectionTitle>
+          {vault.plan && <span className="rounded border border-[#354b61] px-2 py-1 font-mono text-[8px] text-[#8ea2b9]">v{vault.plan.version}</span>}
         </div>
-
         {vault.plan ? (
-          <div className="mt-2.5 rounded-2xl border border-black/[0.05] bg-slate-50/80 p-3.5">
-            <p className="whitespace-pre-wrap break-words text-[13px] leading-[1.6] text-slate-700 italic">
-              &ldquo;{vault.plan.text}&rdquo;
-            </p>
-            <p className="mt-2 text-[11px] text-slate-400">
-              ✓ On-chain verified thesis. Compare with holdings above before investing.
-            </p>
-          </div>
+          <>
+            <p className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-[#263b51] bg-[#091521] p-3 text-[11px] leading-[1.65] text-[#d4deea]">{vault.plan.text}</p>
+            <p className="mt-2 text-[9px] leading-[1.55] text-[#74879e]">Advisory text posted on-chain by the manager; it is not mechanically enforced.</p>
+          </>
         ) : (
-          <p className="mt-2 text-[12px] text-slate-400">
-            The curator has not posted an on-chain plan yet; trades are locked until posted.
-          </p>
+          <EmptyLine>No plan has been published. This vault cannot rebalance until a plan exists.</EmptyLine>
         )}
-      </div>
 
-      {/* Vault Guarantees Tags */}
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {['Approved Stocks Only', 'In-Kind Withdrawals', 'Non-Transferable Shares', '0% Protocol Fees'].map((rule) => (
-          <span
-            key={rule}
-            className="rounded-full border border-black/[0.05] bg-slate-100/80 px-2.5 py-0.5 text-[11px] font-medium text-slate-600"
-          >
-            {rule}
-          </span>
-        ))}
-      </div>
+        <div className="my-4 border-t border-[#24344a]" />
 
-      <hr className="my-5 border-0 border-t border-black/[0.06]" />
+        <SectionTitle>Your position</SectionTitle>
+        {!connected ? (
+          <EmptyLine>Connect a wallet to load your shares and territory.</EmptyLine>
+        ) : vault.position === null ? (
+          <EmptyLine>Position data is unavailable for this wallet.</EmptyLine>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <Metric label="Shares" value={tokenAmount(vault.position.shares, 18, 6)} />
+            <Metric label="Vault share" value={sharePercent === null ? 'Unavailable' : `${formatPercent(sharePercent)}%`} />
+            <div className="col-span-2"><Metric label="Estimated position" value={vault.position.valueUsd === null ? 'Unavailable' : money(Number(vault.position.valueUsd))} /></div>
+          </div>
+        )}
 
-      {/* Investor Position */}
-      <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3 text-[13px]">
-        <span className="font-semibold text-slate-600">Your Vault Holding</span>
-        <strong className="font-bold text-slate-900 tabular-nums">
-          {!vault.position
-            ? '—'
-            : vault.position.valueUsd === null
-              ? `${tokenAmount(vault.position.shares, 18, 4)} shares`
-              : money(Number(vault.position.valueUsd))}
-        </strong>
-      </div>
+        <p className="mt-3 rounded-lg border border-[#29465a] bg-[#0b2230] p-3 text-[10px] leading-[1.6] text-[#9bb4c8]">
+          Withdrawals return your proportional share of every held token in kind—including stock tokens and USDT—not a guaranteed cash amount.
+        </p>
 
-      {/* Action Buttons */}
-      <button
-        type="button"
-        disabled={!connected || !acceptsDeposits}
-        onClick={() => onTrade('invest')}
-        className="apple-press mt-4 w-full rounded-full border border-slate-900 bg-gradient-to-b from-slate-800 to-slate-950 px-5 py-3.5 text-[14px] font-bold text-white shadow-sm hover:from-slate-700 hover:to-slate-900 disabled:opacity-50"
-      >
-        {!connected
-          ? 'Connect Wallet to Invest'
-          : acceptsDeposits
-            ? 'Deposit USDT'
-            : pricesMissing && vault.state === 'ACTIVE'
-              ? 'Deposits Paused: No Live Prices'
-              : `Deposits Closed (${vault.state.toLowerCase()})`}
-      </button>
-
-      {hasShares && (
-        <button
-          type="button"
-          onClick={() => onTrade('withdraw')}
-          className="apple-press mt-2 w-full rounded-full border border-black/[0.08] bg-white p-3 text-[13px] font-semibold text-slate-800 shadow-2xs hover:bg-slate-50"
-        >
-          Withdraw In-Kind
+        <button type="button" disabled={!connected || !acceptsDeposits} onClick={() => onTrade('invest')} className="mt-4 w-full rounded-lg border border-[#e6c52d] bg-[#f2d23d] px-4 py-3 text-[12px] font-[900] text-[#111827] hover:bg-[#ffe768] disabled:cursor-not-allowed disabled:opacity-45">
+          {!connected ? 'Connect wallet to deposit' : acceptsDeposits ? 'Deposit USDT' : pricesMissing && vault.state === 'ACTIVE' ? 'Deposit unavailable: missing prices' : `Deposits closed · ${vault.state}`}
         </button>
-      )}
+        <button type="button" disabled={!hasShares} onClick={() => onTrade('withdraw')} className="mt-2.5 w-full rounded-lg border border-[#3a5269] bg-[#111f2f] px-4 py-3 text-[12px] font-[800] text-[#d5e0eb] hover:border-[#637a90] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">
+          {hasShares ? 'Withdraw in kind' : 'No shares to withdraw'}
+        </button>
+      </div>
     </aside>
   );
 }
 
+function SectionTitle({children}: {children: string}) {
+  return <h3 className="font-mono text-[9px] font-[850] tracking-[1.2px] text-[#91a5bc]">{children.toUpperCase()}</h3>;
+}
+
+function Metric({label, value}: {label: string; value: string}) {
+  return (
+    <div className="rounded-lg border border-[#22354a] bg-[#091521] px-3 py-2.5">
+      <span className="block font-mono text-[8px] tracking-[0.5px] text-[#6f839b]">{label.toUpperCase()}</span>
+      <strong className="mt-1 block truncate text-[12px] font-[800] text-[#eef4fa]" title={value}>{value}</strong>
+    </div>
+  );
+}
+
+function EmptyLine({children}: {children: React.ReactNode}) {
+  return <p className="mt-3 rounded-lg border border-dashed border-[#30445a] bg-[#091521] p-3 text-[10px] leading-[1.6] text-[#778ba3]">{children}</p>;
+}
+
+function formatPercent(value: number) {
+  if (!Number.isFinite(value)) return 'Unavailable';
+  return value >= 0.01 && value < 99.99 ? value.toFixed(2).replace(/\.00$/, '') : value.toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+}

@@ -4,39 +4,12 @@ import {money, shortAddress} from '@/lib/domain/format';
 import type {VaultView} from '@/lib/contracts/hooks';
 import {allocation} from './allocation';
 
-const EMBLEM_GRADIENTS = [
-  'from-blue-500 to-indigo-600 text-white shadow-blue-500/20',
-  'from-emerald-500 to-teal-700 text-white shadow-emerald-500/20',
-  'from-purple-500 to-violet-700 text-white shadow-purple-500/20',
-  'from-amber-500 to-orange-600 text-white shadow-amber-500/20',
-];
-
-const STATE_CONFIG: Record<VaultView['state'], {pill: string; dot: string; label: string}> = {
-  ACTIVE: {
-    pill: 'border-emerald-200 bg-emerald-50/80 text-emerald-800',
-    dot: 'bg-emerald-500',
-    label: 'Active',
-  },
-  PAUSED: {
-    pill: 'border-amber-200 bg-amber-50/80 text-amber-800',
-    dot: 'bg-amber-500',
-    label: 'Paused',
-  },
-  SEEDED: {
-    pill: 'border-slate-200 bg-slate-100/80 text-slate-700',
-    dot: 'bg-slate-400',
-    label: 'Seeded',
-  },
-  DRAFT: {
-    pill: 'border-slate-200 bg-slate-100/80 text-slate-600',
-    dot: 'bg-slate-400',
-    label: 'Draft',
-  },
-  CLOSED: {
-    pill: 'border-rose-200 bg-rose-50/80 text-rose-800',
-    dot: 'bg-rose-500',
-    label: 'Closed',
-  },
+const STATE_STYLE: Record<VaultView['state'], string> = {
+  ACTIVE: 'border-[#246158] bg-[#123a36] text-[#6ee7d1]',
+  PAUSED: 'border-[#66541e] bg-[#28210f] text-[#f2d568]',
+  SEEDED: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
+  DRAFT: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
+  CLOSED: 'border-[#69333d] bg-[#2a1820] text-[#ff9ba5]',
 };
 
 interface Props {
@@ -48,119 +21,45 @@ interface Props {
 
 export function StrategyCard({vault, index, selected, onSelect}: Props) {
   const slices = allocation(vault);
-  const stateCfg = STATE_CONFIG[vault.state];
 
   return (
-    <article
-      onClick={onSelect}
-      className={`group apple-press relative cursor-pointer rounded-2xl bg-white p-5 transition-all sm:p-6 ${
-        selected
-          ? 'border-transparent shadow-[0_12px_40px_rgba(15,23,42,0.1)] ring-2 ring-slate-950'
-          : 'border border-black/[0.06] shadow-[0_2px_8px_rgba(0,0,0,0.02),0_8px_24px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:border-black/[0.12] hover:shadow-[0_8px_32px_rgba(0,0,0,0.06)]'
-      }`}
-    >
-      {/* Top Header: Emblem, Names, Status Capsule */}
-      <div className="flex flex-col items-start justify-between gap-3 xs:flex-row sm:flex-col md:flex-row">
-        <div className="flex items-center gap-3.5">
-          <div
-            className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-[20px] font-bold shadow-md ring-1 ring-black/5 transition-transform group-hover:scale-105 ${
-              EMBLEM_GRADIENTS[index % EMBLEM_GRADIENTS.length]
-            }`}
-          >
-            {vault.name.charAt(0)}
+    <article className={`relative rounded-xl border bg-[#0d1827] p-4 transition ${selected ? 'border-[#e1c83c] shadow-[0_0_0_1px_rgba(225,200,60,0.28)]' : 'border-[#26374d] hover:border-[#41566e]'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center bg-[#f2d23d] font-mono text-[13px] font-[900] text-[#111827] [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
+            {vault.name.charAt(0) || String(index + 1)}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-[17px] font-bold tracking-tight text-slate-900 sm:text-[18px]">
-                {vault.name}
-              </h3>
-              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-500">
-                {vault.symbol}
-              </span>
-            </div>
-            <p className="mt-0.5 text-[12px] font-medium text-slate-400">
-              Curator <span className="font-mono text-slate-500">{shortAddress(vault.manager)}</span>
-            </p>
+          <div className="min-w-0">
+            <h3 className="truncate text-[15px] font-[820] text-white">{vault.name}</h3>
+            <span className="mt-1 block font-mono text-[8px] text-[#71859d]">Manager {shortAddress(vault.manager)}</span>
           </div>
         </div>
-
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${stateCfg.pill}`}
-        >
-          <span className={`h-1.5 w-1.5 rounded-full ${stateCfg.dot}`} />
-          {stateCfg.label}
-        </span>
+        <span className={`shrink-0 rounded border px-2 py-1 font-mono text-[8px] font-[800] ${STATE_STYLE[vault.state]}`}>{vault.state}</span>
       </div>
 
-      {/* Segmented Asset Allocation Bar */}
-      <div className="my-4">
-        <div className="flex h-2 w-full gap-1 overflow-hidden rounded-full bg-slate-100 p-0.5">
-          {slices.map((s) =>
-            s.percent === null ? null : (
-              <span
-                key={s.symbol}
-                style={{width: `${s.percent}%`, background: s.color}}
-                className="h-full rounded-full transition-all duration-300"
-              />
-            ),
-          )}
-        </div>
-
-        {/* Legend */}
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-600">
-          {slices.length > 0 ? (
-            slices.map((s) => (
-              <span key={s.symbol} className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{backgroundColor: s.color}} />
-                <span className="font-semibold text-slate-700">{s.symbol}</span>
-                <span className="text-slate-400 tabular-nums">
-                  {s.percent === null ? '—' : `${s.percent.toFixed(0)}%`}
-                </span>
-              </span>
-            ))
-          ) : (
-            <span className="text-slate-400 text-[12px]">All cash (USDT awaiting curator trades)</span>
-          )}
-        </div>
+      <div className="my-4 flex h-2 gap-[2px] overflow-hidden rounded bg-[#07111f]">
+        {slices.map((slice) => slice.percent === null ? null : <span key={slice.symbol} style={{width: `${slice.percent}%`, background: slice.color}} />)}
       </div>
+      <p className="min-h-[18px] truncate font-mono text-[8px] text-[#7589a0]">
+        {slices.map((slice) => `${slice.symbol} ${slice.percent === null ? 'unavailable' : `${slice.percent.toFixed(0)}%`}`).join(' · ') || 'No holdings'}
+      </p>
 
-      {/* Metrics & Action Button */}
-      <div className="mt-5 grid grid-cols-2 items-center gap-3 border-t border-black/[0.04] pt-4 xs:grid-cols-[1fr_1fr_auto] sm:gap-4">
-        <div>
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-            Share Price
-          </span>
-          <strong className="mt-0.5 block text-[17px] font-bold tracking-tight text-slate-900 tabular-nums sm:text-[19px]">
-            {vault.sharePriceUsd === null ? 'Unavailable' : money(Number(vault.sharePriceUsd))}
-          </strong>
-        </div>
-
-        <div>
-          <span className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-400">
-            Vault Valuation
-          </span>
-          <strong className="mt-0.5 block text-[17px] font-bold tracking-tight text-slate-900 tabular-nums sm:text-[19px]">
-            {vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))}
-          </strong>
-        </div>
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect();
-          }}
-          aria-pressed={selected}
-          className={`apple-press col-span-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all xs:col-span-1 ${
-            selected
-              ? 'bg-slate-950 text-white shadow-xs'
-              : 'border border-black/[0.08] bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900'
-          }`}
-        >
-          {selected ? 'Viewing' : 'View Details'}
-        </button>
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Value label="Share price" value={vault.sharePriceUsd === null ? 'Unavailable' : money(Number(vault.sharePriceUsd))} />
+        <Value label="Vault value" value={vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))} />
       </div>
+      <button type="button" onClick={onSelect} aria-pressed={selected} className={`mt-3 w-full rounded-lg border px-3 py-2.5 text-[11px] font-[800] ${selected ? 'border-[#5c6f84] bg-[#192a3c] text-white' : 'border-[#31465d] bg-[#101e2e] text-[#b6c4d3] hover:border-[#5c7188] hover:text-white'}`}>
+        {selected ? 'Selected vault' : 'View vault'}
+      </button>
     </article>
   );
 }
 
+function Value({label, value}: {label: string; value: string}) {
+  return (
+    <div className="rounded-lg border border-[#22354a] bg-[#091521] px-3 py-2">
+      <span className="block font-mono text-[7px] tracking-[0.4px] text-[#6f839b]">{label.toUpperCase()}</span>
+      <strong className="mt-1 block truncate text-[11px] text-[#edf3fa]">{value}</strong>
+    </div>
+  );
+}
