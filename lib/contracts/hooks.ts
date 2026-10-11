@@ -63,6 +63,9 @@ export function useVaults() {
 export function explainError(error: unknown): string {
   if (error instanceof BaseError) {
     if (error.walk((e) => e instanceof UserRejectedRequestError)) return 'You cancelled the request in your wallet.';
+    if (error.message?.includes('nonce too low') || error.shortMessage?.includes('nonce too low')) {
+      return 'Wallet transaction nonce is out of sync with Anvil. In MetaMask: Settings ➔ Advanced ➔ "Clear activity tab data", then retry.';
+    }
     const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
     if (revert instanceof ContractFunctionRevertedError) {
       switch (revert.data?.errorName) {
