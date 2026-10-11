@@ -19,8 +19,8 @@ export const DEPLOYMENTS: Partial<Record<number, Deployment>> = {
     usdt: '0x55d398326f99059fF775485246999027B3197955',
   },
   56: {
-    registry: '0xaacbd93763899Bf63ee1F1a1cd7D9D270262e0a7',
-    factory: '0xcefE54E0EF1443a6e797d97419695D2C5ABbd4a7',
+    registry: '0x9262e9FA139113B32621581FD38250C7Da257ba7',
+    factory: '0x4F0e39A8d9D3cB7a4D77B77aD310CC3969F15603',
     usdt: '0x55d398326f99059fF775485246999027B3197955',
   },
 };
