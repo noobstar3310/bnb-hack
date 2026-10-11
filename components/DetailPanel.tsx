@@ -19,21 +19,21 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
   const sharePercent = sharePpm === null ? null : sharePpm / 10_000;
 
   return (
-    <article aria-label="Selected vault" className="folio-enter">
+    <article aria-label="Selected vault" className="folio-enter min-w-0 max-w-full overflow-x-clip">
       <header className="grid gap-10 border-b border-[#aeb8ad] pb-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3"><p className="eyebrow">Vault details</p><span className={`folio-status ${vault.state === 'ACTIVE' ? 'folio-status-active' : vault.state === 'CLOSED' ? 'folio-status-closed' : 'folio-status-neutral'}`}>{vault.state}</span></div>
           <h1 className="page-title mt-5 break-words">{vault.name}</h1>
           <p className="mt-4 text-[11px] text-[#737d75]">Managed by {shortAddress(vault.manager)} · {vault.symbol}</p>
         </div>
-        <dl className="grid grid-cols-2 gap-x-10 gap-y-4 lg:min-w-[390px] lg:text-right">
+        <dl className="grid min-w-0 max-w-full grid-cols-2 gap-x-10 gap-y-4 lg:min-w-[390px] lg:text-right">
           <LargeMetric label="Vault value" value={vault.totalValueUsd === null ? 'Unavailable' : money(Number(vault.totalValueUsd))} />
           <LargeMetric label="Share price" value={vault.sharePriceUsd === null ? 'Unavailable' : money(Number(vault.sharePriceUsd))} />
         </dl>
       </header>
 
       <div className="grid gap-16 py-12 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,.75fr)] lg:gap-20">
-        <section>
+        <section className="min-w-0">
           <SectionTitle eyebrow="Current composition">Holdings</SectionTitle>
           {slices.length > 0 && <div className="mt-7 flex h-2 gap-px overflow-hidden rounded-full bg-[#dce1da]">{slices.map((slice) => slice.percent === null ? null : <span key={slice.symbol} style={{width: `${slice.percent}%`, background: slice.color}} />)}</div>}
           <div className="mt-4 border-t border-[#cdd3ca]">
@@ -55,7 +55,7 @@ export function DetailPanel({vault, connected, onTrade}: Props) {
           </section>
         </section>
 
-        <aside className="self-start lg:sticky lg:top-28">
+        <aside className="min-w-0 self-start lg:sticky lg:top-28">
           <SectionTitle eyebrow="Connected wallet">Your position</SectionTitle>
           {!connected ? <EmptyLine>Connect a wallet to load your shares and territory.</EmptyLine> : vault.position === null ? <EmptyLine>Position data is unavailable for this wallet.</EmptyLine> : (
             <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-8 border-y border-[#cdd3ca] py-7">
