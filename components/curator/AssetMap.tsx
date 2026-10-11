@@ -143,17 +143,18 @@ export function AssetMap({
   }
 
   return (
-    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#071a2a]">
-      <div className="relative z-30 flex min-h-[58px] flex-wrap items-center gap-2 border-b border-[#284055] bg-[#0b1827]/96 px-3 py-2 sm:px-4">
+    <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-[#090a0b] font-mono text-[#e8e9e5]">
+      <div className="relative z-30 flex min-h-[58px] flex-wrap items-center gap-2 border-b border-[#3b3f41] bg-[#0b0c0d]/98 px-3 py-2 sm:px-4">
         <div className="mr-auto w-full min-w-0 sm:w-auto sm:min-w-[155px]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[15px] font-[820] tracking-[-0.2px] text-white sm:text-[17px]">Capital archipelago</h2>
-            <span className="rounded border border-[#24584f] bg-[#0d302d] px-2 py-1 font-mono text-[7px] font-[800] tracking-[0.7px] text-[#6ce2cf]">
-              {demo ? 'VISUAL DEMO' : artSample ? 'ART SAMPLE' : 'VAULT ISLANDS'}
+            <span aria-hidden="true" className="text-[12px] text-[#65e2c5]">&gt;</span>
+            <h2 className="text-[13px] font-[800] tracking-[0.08em] text-[#f4f4ef] sm:text-[15px]">CAPITAL_ARCHIPELAGO</h2>
+            <span className="border border-[#4a504e] bg-[#171a19] px-2 py-1 text-[7px] font-[800] tracking-[0.12em] text-[#65e2c5]">
+              [ {demo ? 'VISUAL_DEMO' : artSample ? 'ART_SAMPLE' : 'VAULT_ISLANDS'} ]
             </span>
           </div>
-          <p className="mt-0.5 font-mono text-[8px] text-[#7e91aa] sm:text-[9px]">
-            {visibleVaults.length} vault {visibleVaults.length === 1 ? 'island' : 'islands'} · select land to manage it
+          <p className="mt-1 text-[8px] tracking-[0.08em] text-[#858b88] sm:text-[9px]">
+            :: {String(visibleVaults.length).padStart(2, '0')} VAULT_{visibleVaults.length === 1 ? 'ISLAND' : 'ISLANDS'} / SELECT LAND TO INSPECT
           </p>
         </div>
 
@@ -162,15 +163,15 @@ export function AssetMap({
           if (value === 'terrain') setHoveredAsset(null);
         }} />
         <LayerToggle active={showTerritories} label="User territories" shortLabel="USERS" onClick={() => setShowTerritories((value) => !value)} />
-        <div className="ml-1 flex items-center gap-1.5 border-l border-[#2a4055] pl-2">
+        <div className="ml-1 flex items-center gap-1.5 border-l border-[#3b3f41] pl-2">
           <MapButton label="Zoom out" disabled={zoom <= 0.75} onClick={() => setZoom((value) => Math.max(0.75, value - 0.25))}>−</MapButton>
           <span className="w-9 text-center font-mono text-[8px] text-[#91a2b8]">{Math.round(zoom * 100)}%</span>
           <MapButton label="Zoom in" disabled={zoom >= 1.75} onClick={() => setZoom((value) => Math.min(1.75, value + 0.25))}>+</MapButton>
-          <button type="button" onClick={resetView} className="h-8 rounded-md border border-[#344960] bg-[#101e2e] px-2 font-mono text-[7px] font-[800] tracking-[0.5px] text-[#aebdce] hover:border-[#68798c] hover:text-white">RESET</button>
+          <button type="button" onClick={resetView} className="h-8 border border-[#555b58] bg-[#111314] px-2 text-[7px] font-[800] tracking-[0.12em] text-[#c2c6c3] hover:border-[#8c9490] hover:bg-[#1a1d1c] hover:text-white">[ RESET ]</button>
         </div>
       </div>
 
-      <div className="relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_48%_42%,#123c55_0%,#0a2a42_44%,#061827_100%)]">
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#0d0f10]">
         {visibleVaults.length === 0 ? (
           <EmptyMap />
         ) : (
@@ -185,19 +186,32 @@ export function AssetMap({
             onPointerCancel={endDrag}
           >
             <defs>
-              <pattern id="ocean-pixels" width="32" height="32" patternUnits="userSpaceOnUse">
-                <rect width="32" height="32" fill="#08243a" />
-                <rect width="16" height="16" fill="#0a2941" opacity="0.45" />
-                <rect x="16" y="16" width="16" height="16" fill="#071f34" opacity="0.38" />
+              <pattern id="ocean-pixels" width="24" height="24" patternUnits="userSpaceOnUse">
+                <rect width="24" height="24" fill="#0d0f10" />
+                <rect width="12" height="12" fill="#121516" opacity="0.72" />
+                <rect x="12" y="12" width="12" height="12" fill="#090b0c" opacity="0.7" />
+              </pattern>
+              <pattern id="ascii-field" width="64" height="40" patternUnits="userSpaceOnUse">
+                <text x="7" y="13" fill="#aeb6b1" fillOpacity="0.1" fontSize="8" fontFamily="ui-monospace, monospace">.</text>
+                <text x="42" y="31" fill="#d5dad6" fillOpacity="0.07" fontSize="8" fontFamily="ui-monospace, monospace">+</text>
               </pattern>
               <filter id="island-shadow" x="-30%" y="-30%" width="160%" height="170%">
-                <feDropShadow dx="0" dy="12" stdDeviation="8" floodColor="#00101b" floodOpacity="0.65" />
+                <feDropShadow dx="0" dy="10" stdDeviation="5" floodColor="#000000" floodOpacity="0.8" />
               </filter>
               <filter id="selected-island" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="0" stdDeviation="1.5" floodColor="#f1d552" floodOpacity="0.9" />
+                <feDropShadow dx="0" dy="0" stdDeviation="1.2" floodColor="#f1c75b" floodOpacity="0.95" />
+              </filter>
+              <filter id="terrain-monochrome" colorInterpolationFilters="sRGB">
+                <feColorMatrix type="saturate" values="0" />
+                <feComponentTransfer>
+                  <feFuncR type="linear" slope="0.82" intercept="0.08" />
+                  <feFuncG type="linear" slope="0.82" intercept="0.08" />
+                  <feFuncB type="linear" slope="0.82" intercept="0.08" />
+                </feComponentTransfer>
               </filter>
             </defs>
             <rect width={viewWidth} height={viewHeight} fill="url(#ocean-pixels)" />
+            <rect width={viewWidth} height={viewHeight} fill="url(#ascii-field)" />
             <OceanTexture width={viewWidth} height={viewHeight} />
             <g transform={`translate(${pan.x} ${pan.y}) scale(${zoom})`}>
               {visibleVaults.map((vault, index) => {
@@ -362,6 +376,7 @@ function ArtVaultIsland({
           height={size}
           preserveAspectRatio="xMidYMid meet"
           imageRendering="pixelated"
+          filter="url(#terrain-monochrome)"
         />
         {showAssets && shownAssetUrl && (
           <image href={shownAssetUrl} x={x} y={y} width={size} height={size} imageRendering="pixelated" opacity={dimWholeAssetLayer ? 0.3 : 1} pointerEvents="none" />
@@ -408,8 +423,8 @@ function ArtVaultIsland({
       })}
 
       <g transform={`translate(${x + size / 2} ${y + size - 13}) scale(${1 / zoom})`} data-map-control="label" pointerEvents="none">
-        <rect x="-105" y="0" width="210" height={labelHeight} rx="5" fill="#07111e" fillOpacity="0.96" stroke={selected ? '#e4ce4f' : '#52687f'} strokeWidth={selected ? 1.4 : 1} />
-        <text x="0" y="17" textAnchor="middle" fill="white" fontSize="11" fontFamily="ui-monospace, monospace" fontWeight="800">{truncate(vault.name, 24)}</text>
+        <rect x="-105" y="0" width="210" height={labelHeight} rx="0" fill="#090a0b" fillOpacity="0.98" stroke={selected ? '#f1c75b' : '#5d6360'} strokeWidth={selected ? 1.4 : 1} />
+        <text x="0" y="17" textAnchor="middle" fill="#f2f3ef" fontSize="10" fontFamily="ui-monospace, monospace" fontWeight="800">[ {truncate(vault.name.toUpperCase(), 22)} ]</text>
         <text x="0" y="33" textAnchor="middle" fill={stateColor(vault.state)} fontSize="8" fontFamily="ui-monospace, monospace">{vault.state} · {vault.totalValueUsd === null ? 'VALUATION UNAVAILABLE' : `$${Number(vault.totalValueUsd).toLocaleString('en-US', {maximumFractionDigits: 0})}`}</text>
         {mix.status === 'unpriced' && <text x="0" y="49" textAnchor="middle" fill="#dccb76" fontSize="8" fontFamily="ui-monospace, monospace">Asset ratio unavailable</text>}
       </g>
@@ -421,13 +436,13 @@ function TerritoryDetailCard({detail, onClose}: {detail: TerritoryDetail; onClos
   const ppm = sharePartsPerMillion(detail.holder.shares, detail.vault.totalSupply);
   const percent = ppm === null ? null : Number(ppm) / 10_000;
   return (
-    <div className="absolute bottom-3 right-3 z-30 w-[min(300px,calc(100%-24px))] rounded-lg border border-[#3c566d] bg-[#071421]/96 p-3 shadow-[0_18px_50px_rgba(0,0,0,0.48)] backdrop-blur">
+    <div className="absolute bottom-3 right-3 z-30 w-[min(300px,calc(100%-24px))] border border-[#5b625e] bg-[#0a0b0c]/96 p-3 shadow-[8px_8px_0_rgba(0,0,0,0.35)] backdrop-blur">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-mono text-[8px] font-[800] tracking-[1px] text-[#72dfcd]">{detail.holder.kind === 'wallet' ? 'INVESTOR TERRITORY' : 'UNRESOLVED TERRITORY'}</p>
+          <p className="font-mono text-[8px] font-[800] tracking-[1px] text-[#65e2c5]">[ {detail.holder.kind === 'wallet' ? 'INVESTOR_TERRITORY' : 'UNRESOLVED_TERRITORY'} ]</p>
           <p className="mt-1 break-all text-[11px] font-[700] text-white">{detail.holder.address ?? detail.holder.label}</p>
         </div>
-        <button type="button" onClick={onClose} className="grid h-6 w-6 shrink-0 place-items-center rounded border border-[#344a60] text-[12px] text-[#91a3b9] hover:text-white">×</button>
+        <button type="button" onClick={onClose} className="grid h-6 w-6 shrink-0 place-items-center border border-[#555b58] text-[12px] text-[#aeb4b0] hover:border-[#e6e8e3] hover:text-white">×</button>
       </div>
       <dl className="mt-3 grid grid-cols-2 gap-2 font-mono text-[9px]">
         <div><dt className="text-[#6f849e]">Shares</dt><dd className="mt-1 text-[#dce6f1]">{tokenAmount(detail.holder.shares, 18, 6)}</dd></div>
@@ -441,10 +456,10 @@ function TerritoryDetailCard({detail, onClose}: {detail: TerritoryDetail; onClos
 
 function AssetHoverCard({asset}: {asset: HoveredAsset}) {
   return (
-    <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 rounded-md border border-[#48647a] bg-[#06131f]/95 px-3 py-2 shadow-[0_10px_30px_rgba(0,0,0,0.38)] backdrop-blur">
-      <span className="h-3 w-3 rounded-sm border border-white/25" style={{backgroundColor: asset.color}} />
+    <div className="pointer-events-none absolute left-3 top-3 z-30 flex items-center gap-2 border border-[#646b67] bg-[#090a0b]/96 px-3 py-2 shadow-[6px_6px_0_rgba(0,0,0,0.3)] backdrop-blur">
+      <span className="h-3 w-3 border border-white/30" style={{backgroundColor: asset.color}} />
       <span className="text-[11px] font-[800] text-white">{asset.symbol}</span>
-      <span className="font-mono text-[9px] text-[#b9c9da]">{formatPercent(asset.percent)}% of vault value</span>
+      <span className="font-mono text-[9px] text-[#bfc4c0]">:: {formatPercent(asset.percent)}% OF VAULT VALUE</span>
     </div>
   );
 }
@@ -453,11 +468,11 @@ function MapLegend({vault, mapView, showTerritories, demo}: {vault: VaultView | 
   const mix = useMemo(() => assetMix(vault?.holdings ?? []), [vault?.holdings]);
   const total = mix.assets.reduce((sum, asset) => sum + asset.value, 0);
   return (
-    <div className="relative z-20 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[#263b52] bg-[#0b1725] px-3 py-2 font-mono text-[8px] leading-[1.4] text-[#8597ae] sm:px-4 sm:text-[9px]">
-      {mix.status === 'ready' && <span className="font-[800] tracking-[0.5px] text-[#7489a2]">ASSET LEGEND</span>}
+    <div className="relative z-20 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[#3b3f41] bg-[#0a0b0c] px-3 py-2 font-mono text-[8px] leading-[1.4] text-[#989e9a] sm:px-4 sm:text-[9px]">
+      {mix.status === 'ready' && <span className="font-[800] tracking-[0.08em] text-[#d7dad6]">[ ASSET_LEGEND ]</span>}
       {mix.status === 'ready' && mix.assets.map((asset) => (
-        <span key={asset.address} className="inline-flex items-center gap-1.5 text-[#b9c7d7]">
-          <span className="h-2.5 w-2.5 rounded-sm border border-white/20" style={{backgroundColor: asset.color}} />
+        <span key={asset.address} className="inline-flex items-center gap-1.5 text-[#c7cbc8]">
+          <span className="h-2.5 w-2.5 border border-white/25" style={{backgroundColor: asset.color}} />
           {asset.symbol} {formatPercent(asset.value / total * 100)}%
         </span>
       ))}
@@ -512,26 +527,26 @@ function InvestorMarker({current, label}: {current: boolean; label: string}) {
   const labelWidth = Math.max(24, shownLabel.length * 5.4 + 10);
   return (
     <g className="cursor-pointer" data-investor-marker="true">
-      <ellipse cx="0" cy="8" rx="10" ry="4" fill="#001019" opacity="0.55" />
-      <circle cx="0" cy="-2" r="17" fill="#071522" fillOpacity="0.88" stroke={current ? '#70ead4' : '#e5d164'} strokeWidth="2" />
-      <rect x="-2.5" y="-2" width="5" height="14" rx="1" fill="#9a6038" />
-      <circle cx="-7" cy="-9" r="7" fill={current ? '#31a986' : '#8c7d36'} />
-      <circle cx="6" cy="-10" r="8" fill={current ? '#56c8a2' : '#b4a249'} />
-      <circle cx="0" cy="-16" r="7" fill={current ? '#83e2bd' : '#ddc85e'} />
-      <rect x={-labelWidth / 2} y="18" width={labelWidth} height="15" rx="4" fill="#04101b" fillOpacity="0.92" stroke={current ? '#367a70' : '#6e622d'} strokeWidth="0.7" />
-      <text x="0" y="28.5" textAnchor="middle" fill={current ? '#a7f2e4' : '#f6e37e'} stroke="#04101b" strokeWidth="2.4" paintOrder="stroke" fontSize="8" fontFamily="ui-monospace, monospace" fontWeight="800">{shownLabel}</text>
+      <rect x="-10" y="8" width="20" height="4" fill="#000" opacity="0.55" />
+      <rect x="-16" y="-18" width="32" height="32" fill="#090a0b" fillOpacity="0.9" stroke={current ? '#65e2c5' : '#f1c75b'} strokeWidth="2" />
+      <rect x="-3" y="-3" width="6" height="15" fill="#c2c5c2" />
+      <rect x="-11" y="-11" width="9" height="9" fill={current ? '#2b9d89' : '#9b8034'} />
+      <rect x="2" y="-13" width="10" height="10" fill={current ? '#54cbb2' : '#caa845'} />
+      <rect x="-5" y="-19" width="10" height="10" fill={current ? '#8cf0d8' : '#f1c75b'} />
+      <rect x={-labelWidth / 2} y="18" width={labelWidth} height="15" fill="#070809" fillOpacity="0.96" stroke={current ? '#65e2c5' : '#8d793d'} strokeWidth="0.8" />
+      <text x="0" y="28.5" textAnchor="middle" fill={current ? '#a5f3df' : '#f6da83'} stroke="#070809" strokeWidth="2.4" paintOrder="stroke" fontSize="8" fontFamily="ui-monospace, monospace" fontWeight="800">[ {shownLabel} ]</text>
     </g>
   );
 }
 
 function MapViewToggle({value, onChange}: {value: MapView; onChange: (value: MapView) => void}) {
   return (
-    <div role="group" aria-label="Map view" className="flex h-8 overflow-hidden rounded-md border border-[#344960] bg-[#0a1624]">
+    <div role="group" aria-label="Map view" className="flex h-8 overflow-hidden border border-[#555b58] bg-[#111314]">
       <button
         type="button"
         aria-pressed={value === 'terrain'}
         onClick={() => onChange('terrain')}
-        className={`px-2 font-mono text-[7px] font-[800] tracking-[0.4px] sm:px-2.5 ${value === 'terrain' ? 'bg-[#203448] text-white' : 'text-[#74879f] hover:text-white'}`}
+        className={`px-2 font-mono text-[7px] font-[800] tracking-[0.1em] sm:px-2.5 ${value === 'terrain' ? 'bg-[#e4e6e2] text-[#0b0c0d]' : 'text-[#8f9692] hover:bg-[#1b1e1c] hover:text-white'}`}
       >
         <span className="sm:hidden">NATURE</span><span className="hidden sm:inline">Natural terrain</span>
       </button>
@@ -539,7 +554,7 @@ function MapViewToggle({value, onChange}: {value: MapView; onChange: (value: Map
         type="button"
         aria-pressed={value === 'distribution'}
         onClick={() => onChange('distribution')}
-        className={`border-l border-[#344960] px-2 font-mono text-[7px] font-[800] tracking-[0.4px] sm:px-2.5 ${value === 'distribution' ? 'bg-[#15453d] text-[#82ead8]' : 'text-[#74879f] hover:text-white'}`}
+        className={`border-l border-[#555b58] px-2 font-mono text-[7px] font-[800] tracking-[0.1em] sm:px-2.5 ${value === 'distribution' ? 'bg-[#21483f] text-[#8ff2dc]' : 'text-[#8f9692] hover:bg-[#1b1e1c] hover:text-white'}`}
       >
         <span className="sm:hidden">ASSETS</span><span className="hidden sm:inline">Asset distribution</span>
       </button>
@@ -554,7 +569,7 @@ function LayerToggle({active, label, shortLabel, onClick}: {active: boolean; lab
       aria-pressed={active}
       title={label}
       onClick={onClick}
-      className={`h-8 rounded-md border px-2 font-mono text-[7px] font-[800] tracking-[0.5px] transition sm:px-2.5 ${active ? 'border-[#3c766d] bg-[#12352f] text-[#78dfce]' : 'border-[#344960] bg-[#101e2e] text-[#71849c]'}`}
+      className={`h-8 border px-2 font-mono text-[7px] font-[800] tracking-[0.1em] transition sm:px-2.5 ${active ? 'border-[#5ecbb5] bg-[#17372f] text-[#8ff2dc]' : 'border-[#555b58] bg-[#111314] text-[#858c88]'}`}
     >
       <span className="sm:hidden">{shortLabel}</span><span className="hidden sm:inline">{label}</span>
     </button>
@@ -565,9 +580,9 @@ function EmptyMap() {
   return (
     <div className="absolute inset-0 grid place-items-center p-8 text-center">
       <div>
-        <div className="mx-auto h-16 w-24 opacity-65 [clip-path:polygon(8%_45%,22%_20%,52%_12%,82%_28%,96%_57%,72%_82%,36%_90%,10%_72%)] bg-[#347a64] ring-4 ring-[#1b4c63]" />
-        <p className="mt-5 text-[15px] font-[750] text-[#cad6e5]">No managed vaults to map</p>
-        <p className="mt-2 max-w-[360px] text-[12px] leading-[1.6] text-[#7d8fa7]">Connect the manager wallet or create its first vault. Decorative islands are never inserted.</p>
+        <pre aria-hidden="true" className="text-[12px] leading-4 text-[#727a76]">{'   /\\\n _/  \\_\n/______\\'}</pre>
+        <p className="mt-5 text-[13px] font-[800] tracking-[0.08em] text-[#e0e3df]">[ NO_VAULTS_MAPPED ]</p>
+        <p className="mt-2 max-w-[360px] text-[11px] leading-[1.6] text-[#858c88]">CONNECT MANAGER WALLET OR CREATE THE FIRST VAULT. DECORATIVE ISLANDS ARE NEVER INSERTED.</p>
       </div>
     </div>
   );
@@ -580,11 +595,11 @@ function OceanTexture({width, height}: {width: number; height: number}) {
     length: 16 + index % 3 * 7,
   }));
   return (
-    <g opacity="0.28" aria-hidden="true" pointerEvents="none">
+    <g opacity="0.24" aria-hidden="true" pointerEvents="none">
       {waves.map((wave, index) => (
         <g key={index}>
-          <path d={`M${wave.x} ${wave.y}q${wave.length / 4} -3 ${wave.length / 2} 0t${wave.length / 2} 0`} fill="none" stroke="#56a1b9" strokeWidth="1.2" />
-          {index % 2 === 0 && <path d={`M${wave.x + 7} ${wave.y + 7}q${wave.length / 5} -2 ${wave.length / 2.5} 0`} fill="none" stroke="#2d6c86" strokeWidth="1" />}
+          <path d={`M${wave.x} ${wave.y}h${wave.length / 3}m3 0h${wave.length / 3}`} fill="none" stroke="#8c9490" strokeWidth="1" />
+          {index % 2 === 0 && <text x={wave.x + 4} y={wave.y + 10} fill="#69706d" fontSize="7" fontFamily="ui-monospace, monospace">~</text>}
         </g>
       ))}
     </g>
@@ -592,7 +607,7 @@ function OceanTexture({width, height}: {width: number; height: number}) {
 }
 
 function MapButton({label, disabled, onClick, children}: {label: string; disabled: boolean; onClick: () => void; children: React.ReactNode}) {
-  return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="grid h-8 w-8 place-items-center rounded-md border border-[#344960] bg-[#101e2e] text-[17px] text-[#c4cfdb] hover:border-[#68798c] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">{children}</button>;
+  return <button type="button" aria-label={label} disabled={disabled} onClick={onClick} className="grid h-8 w-8 place-items-center border border-[#555b58] bg-[#111314] text-[15px] text-[#d1d4d0] hover:border-[#8c9490] hover:bg-[#1a1d1c] hover:text-white disabled:cursor-not-allowed disabled:opacity-35">{children}</button>;
 }
 
 function formatPercent(value: number) {
@@ -605,10 +620,10 @@ function truncate(value: string, max: number) {
 }
 
 function stateColor(state: VaultView['state']) {
-  if (state === 'ACTIVE') return '#6ee7d1';
-  if (state === 'PAUSED') return '#f2d568';
-  if (state === 'CLOSED') return '#ff9ba5';
-  return '#a8b7ca';
+  if (state === 'ACTIVE') return '#65e2c5';
+  if (state === 'PAUSED') return '#f1c75b';
+  if (state === 'CLOSED') return '#ef7f85';
+  return '#b8bdb9';
 }
 
 function hashString(value: string) {

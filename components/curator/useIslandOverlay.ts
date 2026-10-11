@@ -240,7 +240,7 @@ function paintAssetLayer(
     target[offset] = red;
     target[offset + 1] = green;
     target[offset + 2] = blue;
-    target[offset + 3] = highlightedIndex === null ? 112 : assetIndex === highlightedIndex ? 166 : 30;
+    target[offset + 3] = highlightedIndex === null ? 126 : assetIndex === highlightedIndex ? 178 : 24;
   }
 }
 
@@ -254,10 +254,10 @@ function paintAssetBoundaries(target: Uint8ClampedArray, land: number[], assetAt
     const neighbors = [x + 1 < width ? pixel + 1 : -1, y + 1 < width ? pixel + width : -1];
     if (!neighbors.some((neighbor) => neighbor >= 0 && landSet.has(neighbor) && assetAt[neighbor] >= 0 && assetAt[neighbor] !== asset)) continue;
     const offset = pixel * 4;
-    target[offset] = 9;
-    target[offset + 1] = 28;
-    target[offset + 2] = 39;
-    target[offset + 3] = 125;
+    target[offset] = 18;
+    target[offset + 1] = 20;
+    target[offset + 2] = 20;
+    target[offset + 3] = 155;
   }
 }
 
@@ -295,10 +295,10 @@ function paintBoundaries(target: Uint8ClampedArray, land: number[], territoryAt:
     if (!neighbors.some((neighbor) => neighbor >= 0 && landSet.has(neighbor) && territoryAt[neighbor] !== territory)) continue;
     if ((x + y) % 7 > 3) continue;
     const offset = pixel * 4;
-    target[offset] = 226;
-    target[offset + 1] = 243;
-    target[offset + 2] = 238;
-    target[offset + 3] = 190;
+    target[offset] = 232;
+    target[offset + 1] = 235;
+    target[offset + 2] = 231;
+    target[offset + 3] = 205;
   }
 }
 
