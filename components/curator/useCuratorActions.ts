@@ -191,8 +191,8 @@ export function useCuratorActions() {
         callData: quote.trade.callData,
       };
       const prices = {
-        assets: signedPrices.update.assets.map(getAddress),
-        prices: signedPrices.update.prices.map(BigInt),
+        assets: signedPrices.update.assets.map((asset) => getAddress(asset)),
+        prices: signedPrices.update.prices.map((price) => BigInt(price)),
         timestamp: BigInt(signedPrices.update.timestamp),
       };
       const gas = BigInt(quote.gasLimit);
