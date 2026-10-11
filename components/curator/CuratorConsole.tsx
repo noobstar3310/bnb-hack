@@ -34,7 +34,7 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
   const {address, isConnected} = useConnection();
   const chainId = useChainId();
   const {data: vaults = [], isLoading, error, refetch, isFetching} = useVaults();
-  const {action, createAndSeed} = useCuratorActions();
+  const {action, createAndSeed, seedExistingVault, activateVault} = useCuratorActions();
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [managerTab, setManagerTab] = useState<ManagerTab>('plan');
   const [mobileView, setMobileView] = useState<MobileView>('map');
@@ -125,7 +125,13 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
             <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#344860_#0c1626] [scrollbar-width:thin]">
               {selected ? (
                 <>
-                  <VaultStatus vault={selected} managerAllowed={managerAllowed} />
+                  <VaultStatus
+                    vault={selected}
+                    managerAllowed={managerAllowed}
+                    action={action}
+                    onSeed={() => void seedExistingVault(selected.address)}
+                    onActivate={() => void activateVault(selected.address)}
+                  />
                   <VaultOverviewCard vault={selected} />
                   <div className="sticky top-0 z-10 border-y border-white/[0.08] bg-[#0c1626]/95 p-2 backdrop-blur-xl">
                     <div className="grid grid-cols-3 rounded-full bg-white/5 p-1">
@@ -237,19 +243,64 @@ function VaultPicker({connected, managed, selected, loading, refreshing, error, 
   );
 }
 
-function VaultStatus({vault, managerAllowed}: {vault: VaultView; managerAllowed: boolean}) {
+function VaultStatus({
+  vault,
+  managerAllowed,
+  action,
+  onSeed,
+  onActivate,
+}: {
+  vault: VaultView;
+  managerAllowed: boolean;
+  action: string;
+  onSeed?: () => void;
+  onActivate?: () => void;
+}) {
+  const busy = action === 'approving' || action === 'seeding' || action === 'activating';
+
   return (
     <div className="border-b border-[#24344a] px-4 py-2.5">
       <div className="flex items-center justify-between gap-2">
         <p className="truncate font-mono text-[9px] text-[#788aa1]">Manager {shortAddress(vault.manager)}</p>
         <span className={`shrink-0 rounded border px-2 py-1 font-mono text-[9px] ${STATE_STYLE[vault.state]}`}>{vault.state}</span>
       </div>
-      {vault.state === 'SEEDED' && (
-        <div className="mt-3 rounded-lg border border-[#5f5020] bg-[#231f12] p-2.5 text-[11px] leading-[1.5] text-[#d9c66b]">
-          <strong className="block text-[#f3d756]">Waiting for Guardian activation</strong>
-          Manager trading remains locked until <code>activate()</code> is confirmed.
+
+      {vault.state === 'DRAFT' && managerAllowed && (
+        <div className="mt-3 rounded-lg border border-[#66541e] bg-[#28210f] p-3 text-[11px] leading-[1.5] text-[#f2d568]">
+          <strong className="block text-[#f3ba2f]">Vault in DRAFT — Initial Seed Required</strong>
+          <p className="mt-1 text-[#d5c378]">
+            This vault is deployed on-chain but needs an initial seed deposit (min 10 USDT) to become active.
+          </p>
+          <button
+            type="button"
+            onClick={onSeed}
+            disabled={busy}
+            className="apple-press mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-3.5 py-1 text-[11px] font-bold text-slate-950 hover:brightness-110 disabled:opacity-50"
+          >
+            {action === 'approving' ? 'Approving USDT…' : action === 'seeding' ? 'Seeding Vault…' : 'Deposit 10 USDT Seed →'}
+          </button>
         </div>
       )}
+
+      {vault.state === 'SEEDED' && (
+        <div className="mt-3 rounded-lg border border-[#5f5020] bg-[#231f12] p-3 text-[11px] leading-[1.5] text-[#d9c66b]">
+          <strong className="block text-[#f3d756]">Vault in SEEDED — Pending Activation</strong>
+          <p className="mt-1 text-[#c2b265]">
+            Initial deposit received! Activate the vault to enable curator rebalancing and open investor deposits.
+          </p>
+          {managerAllowed && (
+            <button
+              type="button"
+              onClick={onActivate}
+              disabled={busy}
+              className="apple-press mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-gradient-to-b from-[#34d399] to-[#059669] px-3.5 py-1 text-[11px] font-bold text-slate-950 hover:brightness-110 disabled:opacity-50"
+            >
+              {action === 'activating' ? 'Activating…' : 'Activate Vault (Guardian) →'}
+            </button>
+          )}
+        </div>
+      )}
+
       {!managerAllowed && <p className="mt-3 rounded-lg border border-[#69333d] bg-[#2a1820] p-2.5 text-[11px] leading-[1.5] text-[#ff9ba5]">Manager actions are disabled for this wallet.</p>}
     </div>
   );

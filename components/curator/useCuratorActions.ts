@@ -22,6 +22,7 @@ export type CuratorAction =
   | 'creating'
   | 'approving'
   | 'seeding'
+  | 'activating'
   | 'publishing'
   | 'simulating'
   | 'rebalancing';
@@ -238,5 +239,94 @@ export function useCuratorActions() {
     [config, queryClient, refreshVaults, requireWallet],
   );
 
-  return {action, createAndSeed, publishPlan, executeRebalance};
+  const seedExistingVault = useCallback(
+    async (vault: Address, amountText: string = '10'): Promise<void> => {
+      const account = requireWallet();
+      const deployment = deploymentFor(chainId);
+      if (!deployment) throw new Error(`No deployment configured for chain ${chainId}`);
+
+      const decimals = await readContract(config, {
+        address: deployment.usdt,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      });
+      const amount = parseUnits(amountText, decimals);
+
+      const allowance = await readContract(config, {
+        address: deployment.usdt,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [account, vault],
+      });
+      if (allowance < amount) {
+        setAction('approving');
+        try {
+          const approveHash = await writeContract(config, {
+            address: deployment.usdt,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [vault, amount],
+          });
+          await waitForSuccessfulReceipt(config, approveHash);
+        } finally {
+          setAction('idle');
+        }
+      }
+
+      setAction('seeding');
+      try {
+        await simulateContract(config, {
+          address: vault,
+          abi: folioVaultAbi,
+          functionName: 'seed',
+          args: [amount],
+          account,
+        });
+        const seedHash = await writeContract(config, {
+          address: vault,
+          abi: folioVaultAbi,
+          functionName: 'seed',
+          args: [amount],
+        });
+        await waitForSuccessfulReceipt(config, seedHash);
+        await Promise.all([
+          refreshVaults(),
+          queryClient.invalidateQueries({queryKey: [HISTORY_KEY]}),
+        ]);
+      } finally {
+        setAction('idle');
+      }
+    },
+    [chainId, config, queryClient, refreshVaults, requireWallet],
+  );
+
+  const activateVault = useCallback(
+    async (vault: Address): Promise<void> => {
+      const account = requireWallet();
+      setAction('activating');
+      try {
+        await simulateContract(config, {
+          address: vault,
+          abi: folioVaultAbi,
+          functionName: 'activate',
+          account,
+        });
+        const hash = await writeContract(config, {
+          address: vault,
+          abi: folioVaultAbi,
+          functionName: 'activate',
+        });
+        await waitForSuccessfulReceipt(config, hash);
+        await Promise.all([
+          refreshVaults(),
+          queryClient.invalidateQueries({queryKey: [HISTORY_KEY]}),
+        ]);
+      } finally {
+        setAction('idle');
+      }
+    },
+    [config, queryClient, refreshVaults, requireWallet],
+  );
+
+  return {action, createAndSeed, seedExistingVault, activateVault, publishPlan, executeRebalance};
 }
