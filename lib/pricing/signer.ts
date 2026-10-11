@@ -26,9 +26,10 @@ export interface SignedPrices {
 }
 
 function signer() {
-  const key = process.env.PRICE_SIGNER_PRIVATE_KEY;
-  if (!key) throw new ApiError('PRICE_SIGNER_PRIVATE_KEY is not configured', 500);
-  return privateKeyToAccount(key as Hex);
+  const raw = process.env.PRICE_SIGNER_PRIVATE_KEY?.trim();
+  if (!raw) throw new ApiError('PRICE_SIGNER_PRIVATE_KEY is not configured', 500);
+  const key = (raw.startsWith('0x') ? raw : `0x${raw}`) as Hex;
+  return privateKeyToAccount(key);
 }
 
 function rules(): PriceRules {
