@@ -1,149 +1,94 @@
 @import "tailwindcss";
 
-/* Theme lifted from the original prototype stylesheet so the Tailwind build
-   produces the same palette, type scale and breakpoints. */
 @theme {
   --breakpoint-*: initial;
   --breakpoint-xs: 380px;
-  --breakpoint-sm: 731px;
-  --breakpoint-md: 1051px;
-  --breakpoint-lg: 1500px;
-
-  --color-ink: #0f172a;
-  --color-ink-soft: #182238;
-  --color-ink-hover: #263554;
-  --color-page: #f8fafc;
-  --color-page-tint: #f1f5f9;
-  --color-muted: #64748b;
-  --color-muted-2: #6d7d93;
-  --color-muted-3: #94a3b8;
-  --color-line: #e2e8f0;
-  --color-line-2: #cbd5e1;
-  --color-line-3: #e2e8f0;
-  --color-field: #cbd5e1;
-  --color-field-bg: #f8fafc;
-  --color-positive: #10b981;
-  --color-positive-dark: #059669;
-  --color-negative: #f43f5e;
-  --color-error: #e11d48;
-  --color-lime: #a3e635;
-  --color-lime-2: #bef264;
-  --color-pill-bg: #f0fdf4;
-  --color-pill-line: #bbf7d0;
-  --color-panel-line: #334155;
-  --color-panel-btn: #1e293b;
-  --color-panel-btn-line: #475569;
-  --color-panel-text: #94a3b8;
-
-  /* Apple / Pro Brand Accents */
-  --color-apple-blue: #0071e3;
-  --color-apple-blue-hover: #0077ed;
-  --color-bnb-gold: #f3ba2f;
-  --color-bnb-gold-hover: #e5ac24;
-
-  /* Data-viz palette. Validated with the dataviz skill's checker against the
-     actual #ffffff chart surface: CVD ΔE 9.2, normal-vision ΔE 24.0, all pass.
-     Categorical slots are assigned in fixed order and never cycled. */
-  --color-series-1: #2563eb;
-  --color-series-2: #ea580c;
-  --color-series-3: #10b981;
-  --color-diverge-pos: #2563eb;
-  --color-diverge-neg: #dc2626;
-  --color-diverge-mid: #f1f5f9;
-  --color-status-good: #10b981;
-  --color-status-warning: #f59e0b;
-  --color-status-critical: #ef4444;
-  --color-grid: #e2e8f0;
-  --color-axis: #cbd5e1;
-  --color-ink-muted: #94a3b8;
-
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 900px;
+  --breakpoint-lg: 1200px;
+  --breakpoint-xl: 1500px;
+  --color-page: #ebeee7;
+  --color-ink: #2b3a30;
+  --color-ink-soft: #3d4a41;
+  --color-muted: #6b746c;
+  --color-muted-2: #6b746c;
+  --color-ink-muted: #7b857d;
+  --color-line: #cdd3ca;
+  --color-positive: #237b68;
+  --color-negative: #a14343;
+  --color-bnb-gold: #e0b72e;
+  --font-sans: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
 }
 
-/* Core Apple-inspired typography and rendering rules */
-html {
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --folio-page: #ebeee7;
+  --folio-paper: #f7f8f3;
+  --folio-paper-strong: #fcfdf9;
+  --folio-ink: #2b3a30;
+  --folio-ink-soft: #3d4a41;
+  --folio-muted: #6b746c;
+  --folio-line: #cdd3ca;
+  --folio-line-strong: #aeb8ad;
+  --folio-accent: #d8b126;
+  --folio-accent-hover: #c9a21d;
+  --folio-teal: #237b68;
+  --folio-error: #a14343;
+  --folio-map: #081827;
 }
 
-body {
-  background-color: #f8fafc;
-  background-image:
-    radial-gradient(at 0% 0%, rgba(226, 232, 240, 0.45) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(219, 234, 254, 0.4) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(241, 245, 249, 0.6) 0px, transparent 50%);
-  background-attachment: fixed;
-  color: #0f172a;
-}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { margin: 0; background: var(--folio-page); color: var(--folio-ink); font-family: var(--font-inter), Inter, sans-serif; }
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+::selection { background: rgba(216, 177, 38, 0.3); }
+:focus-visible { outline: 2px solid var(--folio-ink); outline-offset: 3px; }
 
-/* Apple Dialog & Scrim */
-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  animation: appleBackdropFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
+.font-editorial { font-family: var(--font-fraunces), Georgia, serif; }
+.site-container { width: min(100% - 32px, 1440px); margin-inline: auto; }
+.eyebrow { color: var(--folio-muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+.display-title { font-family: var(--font-fraunces), Georgia, serif; color: var(--folio-ink); font-size: clamp(2.75rem, 7vw, 7rem); font-weight: 480; letter-spacing: -0.052em; line-height: 0.94; }
+.page-title { font-family: var(--font-fraunces), Georgia, serif; color: var(--folio-ink); font-size: clamp(2.35rem, 5vw, 4.8rem); font-weight: 480; letter-spacing: -0.045em; line-height: 1; }
+.section-title { font-family: var(--font-fraunces), Georgia, serif; color: var(--folio-ink); font-size: clamp(1.65rem, 3vw, 2.6rem); font-weight: 520; letter-spacing: -0.035em; line-height: 1.08; }
+.hairline { border-color: var(--folio-line); }
 
-@keyframes appleBackdropFade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+.folio-button-primary, .folio-button-secondary, .folio-button-quiet { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 999px; padding: 0.7rem 1.15rem; font-size: 0.78rem; font-weight: 700; text-decoration: none; transition: transform 160ms cubic-bezier(.2,.8,.2,1), background-color 160ms ease, color 160ms ease, border-color 160ms ease, opacity 160ms ease; }
+.folio-button-primary { border: 1px solid var(--folio-accent); background: var(--folio-accent); color: #263027; }
+.folio-button-primary:hover { background: var(--folio-accent-hover); border-color: var(--folio-accent-hover); }
+.folio-button-secondary { border: 1px solid var(--folio-line-strong); background: transparent; color: var(--folio-ink); }
+.folio-button-secondary:hover { border-color: var(--folio-ink); }
+.folio-button-quiet { border: 1px solid transparent; background: transparent; color: var(--folio-muted); }
+.folio-button-quiet:hover { color: var(--folio-ink); background: rgba(43,58,48,.05); }
+.folio-button-primary:active, .folio-button-secondary:active, .folio-button-quiet:active { transform: scale(.975); }
+.folio-button-primary:disabled, .folio-button-secondary:disabled, .folio-button-quiet:disabled { cursor: not-allowed; opacity: .42; }
 
-:focus-visible {
-  outline: 2.5px solid #0071e3;
-  outline-offset: 2px;
-}
+.folio-field { width: 100%; border: 1px solid var(--folio-line-strong); border-radius: 14px; background: rgba(252, 253, 249, 0.72); color: var(--folio-ink); padding: 0.8rem 0.95rem; outline: none; transition: border-color 160ms ease, background-color 160ms ease; }
+.folio-field:focus { border-color: var(--folio-ink); background: var(--folio-paper-strong); }
+.folio-field:disabled { cursor: not-allowed; opacity: .5; }
 
-/* Apple fluid response & micro-spring interaction */
-.apple-press {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
-}
-.apple-press:active {
-  transform: scale(0.972);
-}
+.folio-segmented { gap: 3px; border-radius: 999px; background: rgba(43, 58, 48, 0.07); padding: 3px; }
+.folio-segment { min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--folio-muted); padding: 0.45rem 0.9rem; font-size: 0.72rem; font-weight: 700; transition: background-color 160ms ease, color 160ms ease; }
+.folio-segment[data-active="true"] { background: var(--folio-paper-strong); color: var(--folio-ink); box-shadow: 0 1px 3px rgba(43,58,48,.1); }
 
-/* Apple translucent chrome layers */
-.apple-glass {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.02);
-}
+.folio-status { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid currentColor; border-radius: 999px; padding: .28rem .55rem; font-size: .62rem; font-weight: 800; letter-spacing: .08em; line-height: 1; text-transform: uppercase; }
+.folio-status::before { width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ""; }
+.folio-status-active { color: #1f7562; background: rgba(35,123,104,.07); }
+.folio-status-waiting { color: #8d6d0a; background: rgba(216,177,38,.09); }
+.folio-status-closed { color: #9a4545; background: rgba(161,67,67,.07); }
+.folio-status-neutral { color: #687269; background: rgba(107,116,108,.06); }
+.folio-divider { height: 1px; border: 0; background: var(--folio-line); }
 
-.apple-glass-card {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px -4px rgba(15, 23, 42, 0.04);
-}
+.folio-sheet { border: 1px solid rgba(43,58,48,.16); border-radius: 24px; background: var(--folio-paper-strong); color: var(--folio-ink); box-shadow: 0 24px 80px rgba(43,58,48,.18); }
+dialog::backdrop { background: rgba(32, 43, 36, 0.38); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: folio-fade 180ms ease-out both; }
+.map-frame { overflow: hidden; border: 1px solid rgba(43,58,48,.16); border-radius: 22px; background: var(--folio-map); box-shadow: 0 16px 50px rgba(43,58,48,.12); }
+.folio-enter { animation: folio-rise 440ms cubic-bezier(.2,.8,.2,1) both; }
 
-.apple-glass-dark {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-/* Smooth macOS-style scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.4);
-  border-radius: 9999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(100, 116, 139, 0.6);
-  background-clip: padding-box;
-}
+@keyframes folio-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes folio-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (min-width: 640px) { .site-container { width: min(100% - 56px, 1440px); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: rgba(61,74,65,.28); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(61,74,65,.48); background-clip: padding-box; }

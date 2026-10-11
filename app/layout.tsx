@@ -1,9 +1,10 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { Providers } from './providers';
+import type {Metadata} from 'next';
+import {Fraunces, Inter} from 'next/font/google';
+import {Providers} from './providers';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const inter = Inter({subsets: ['latin'], display: 'swap', variable: '--font-inter'});
+const fraunces = Fraunces({subsets: ['latin'], display: 'swap', variable: '--font-fraunces'});
 
 export const metadata: Metadata = {
   title: 'Folio Lab — pooled stock portfolios on BNB Chain',
@@ -13,10 +14,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="en" className={inter.className}>
-      <body className="m-0 bg-page text-ink">
+    <html lang="en" data-scroll-behavior="smooth" className={`${inter.variable} ${fraunces.variable}`}>
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>
