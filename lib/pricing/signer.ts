@@ -117,8 +117,17 @@ export async function signPricesForVault(vaultParam: string, include: string[] =
   }
 
   // The contract rejects a timestamp ahead of block.timestamp, so never sign past the chain's clock.
-  const latest = await client.getBlock({blockTag: 'latest'});
+  let latest = await client.getBlock({blockTag: 'latest'});
   const now = BigInt(Math.floor(Date.now() / 1000) - CLOCK_SKEW_S);
+  if (now - latest.timestamp > 5n) {
+    try {
+      await client.request({method: 'anvil_setIntervalMining' as any, params: [1] as any});
+      await client.request({method: 'evm_mine' as any});
+      latest = await client.getBlock({blockTag: 'latest'});
+    } catch {
+      // Non-anvil RPC or method unsupported; proceed normally
+    }
+  }
   const timestamp = now < latest.timestamp ? now : latest.timestamp;
   const assets = quotes.map((q) => q.asset);
   const signature = await account.signTypedData({
