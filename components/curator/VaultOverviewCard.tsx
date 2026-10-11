@@ -99,6 +99,9 @@ export function VaultOverviewCard({vault}: {vault: VaultView}) {
             <div className="col-span-2"><dt className="text-slate-400">Estimated Value</dt><dd className="mt-0.5 font-mono text-white font-bold">{dollars(vault.position.valueUsd)}</dd></div>
           </dl>
         )}
+        <p className="mt-2 text-[10px] leading-[1.45] text-slate-400">
+          Remaining share: {formatOtherShare(walletShare)}.
+        </p>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 text-[9px] leading-[1.4] text-[#7d8ea4]">
