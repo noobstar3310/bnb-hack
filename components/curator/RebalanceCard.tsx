@@ -262,7 +262,7 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
 
       <button
         type="button"
-        onClick={prepared && !quoteExpired && !pricesExpired ? () => setConfirmOpen(true) : prepareTrade}
+        onClick={prepared && !quoteExpired && !pricesExpired ? () => setConfirmOpen(true) : () => void prepareTrade()}
         disabled={!canQuote || quoting || signingPrices || executing || !sellHolding || !buyAsset}
         className="mt-4 w-full rounded-lg border border-[#f2cf3d] bg-[#f2cf3d] px-4 py-3 text-[12px] font-[850] text-[#111827] transition hover:bg-[#ffe56e] disabled:cursor-not-allowed disabled:border-[#4d4627] disabled:bg-[#2b2819] disabled:text-[#817746]"
       >
