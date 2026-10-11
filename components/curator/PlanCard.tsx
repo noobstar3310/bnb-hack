@@ -1,9 +1,10 @@
 'use client';
 
 import {useState} from 'react';
-import type {VaultView} from '@/lib/contracts/hooks';
-import {PLAN_ABI_BLOCKER} from './dependencies';
+import {useNotify} from '@/components/Toast';
+import {explainError, type VaultView} from '@/lib/contracts/hooks';
 import {MAX_PLAN_BYTES, utf8ByteLength} from './model';
+import {useCuratorActions} from './useCuratorActions';
 
 interface Props {
   vault: VaultView;
@@ -11,10 +12,27 @@ interface Props {
 }
 
 export function PlanCard({vault, managerAllowed}: Props) {
+  const notify = useNotify();
+  const {action, publishPlan} = useCuratorActions();
   const [text, setText] = useState(vault.plan?.text ?? '');
+  const [error, setError] = useState<string | null>(null);
   const bytes = utf8ByteLength(text);
   const validLength = bytes >= 1 && bytes <= MAX_PLAN_BYTES;
   const changed = text !== (vault.plan?.text ?? '');
+  const publishing = action === 'publishing';
+
+  async function submit() {
+    if (!managerAllowed || !validLength || !changed || publishing) return;
+    setError(null);
+    try {
+      await publishPlan(vault.address, text);
+      notify(`Plan v${(vault.plan?.version ?? 0) + 1} confirmed on-chain.`);
+    } catch (caught) {
+      const message = explainError(caught);
+      setError(message);
+      notify(message);
+    }
+  }
 
   return (
     <section>
@@ -47,7 +65,7 @@ export function PlanCard({vault, managerAllowed}: Props) {
           onChange={(event) => setText(event.target.value)}
           rows={5}
           placeholder="Describe your asset allocation criteria, tech equity targets, cash buffer, and rebalance triggers."
-          disabled={!managerAllowed}
+          disabled={!managerAllowed || publishing}
           aria-describedby="plan-byte-count plan-publishing-status"
           className="resize-y rounded-2xl border border-white/10 bg-white/5 p-3.5 font-mono text-[12px] leading-[1.6] text-white outline-none transition placeholder:text-slate-500 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-50"
         />
@@ -73,22 +91,27 @@ export function PlanCard({vault, managerAllowed}: Props) {
         </strong>
       </div>
 
-      <div
-        id="plan-publishing-status"
-        className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3.5 text-[11px] leading-[1.55] text-amber-200"
-      >
-        <strong className="block text-amber-300 font-bold">On-Chain Publication Status</strong>
-        <p className="mt-1 text-slate-300">
-          {PLAN_ABI_BLOCKER}
-        </p>
-      </div>
+      {!managerAllowed && (
+        <div id="plan-publishing-status" className="mt-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-3.5 text-[11px] leading-[1.55] text-rose-200">
+          <strong className="block font-bold text-rose-300">Manager wallet required</strong>
+          <p className="mt-1 text-slate-300">Connect this vault&apos;s manager wallet to publish the plan on-chain.</p>
+        </div>
+      )}
+
+      {managerAllowed && error && (
+        <div id="plan-publishing-status" role="alert" className="mt-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-3.5 text-[11px] leading-[1.55] text-rose-200">
+          <strong className="block font-bold text-rose-300">Publication failed</strong>
+          <p className="mt-1 text-slate-300">{error}</p>
+        </div>
+      )}
 
       <button
         type="button"
-        disabled
-        className="apple-press mt-4 w-full rounded-full border border-white/10 bg-white/5 px-4 py-3 text-[12px] font-bold text-slate-500 disabled:cursor-not-allowed"
+        onClick={() => void submit()}
+        disabled={!managerAllowed || !validLength || !changed || publishing}
+        className="apple-press mt-4 w-full rounded-full border border-amber-300 bg-amber-300 px-4 py-3 text-[12px] font-bold text-slate-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/5 disabled:text-slate-500"
       >
-        Publishing to Chain Unavailable
+        {publishing ? 'Confirming plan on-chain...' : changed ? 'Publish plan on-chain' : 'Plan already published'}
       </button>
     </section>
   );
