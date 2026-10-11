@@ -100,22 +100,22 @@ export function TradeDialog({type, vault, onClose}: Props) {
     <dialog
       ref={ref}
       onClose={onClose}
-      className="m-auto max-h-[90vh] w-[480px] max-w-[calc(100vw-28px)] overflow-auto rounded-2xl border border-[#334b62] bg-[#0d1827] p-6 text-[#e8eef7] shadow-[0_30px_100px_rgba(0,0,0,0.65)] sm:p-7"
+      className="folio-sheet m-auto max-h-[92vh] w-[500px] max-w-[calc(100vw-20px)] overflow-auto p-6 sm:p-8"
     >
       <form onSubmit={submit}>
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
-            <p className="mb-3 font-mono text-[9px] font-[800] tracking-[1.7px] text-[#59d8c4]">
+            <p className="eyebrow mb-3">
               {type === 'invest' ? 'INVEST USDT' : 'WITHDRAW YOUR SHARE'}
             </p>
-            <h2 className="text-[20px] font-[850] tracking-[-0.5px] text-white">{vault.name}</h2>
+            <h2 className="font-editorial text-[31px] font-medium tracking-[-0.04em] text-[#2b3a30]">{vault.name}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={busy || pending}
             aria-label="Close"
-            className="border-0 bg-transparent px-[3px] text-[28px] leading-none text-[#7f91a7] hover:text-white"
+            className="rounded-full border-0 bg-transparent px-2 text-[28px] leading-none text-[#7b847c] hover:bg-[#2b3a30]/5 hover:text-[#2b3a30]"
           >
             ×
           </button>
@@ -123,7 +123,7 @@ export function TradeDialog({type, vault, onClose}: Props) {
 
         {type === 'invest' ? (
           <>
-            <label htmlFor="amount" className="mt-[17px] block text-[13px] font-semibold text-[#dce6f1]">
+            <label htmlFor="amount" className="mt-[17px] block text-[12px] font-semibold text-[#3d4a41]">
               Amount in USDT
             </label>
             <input
@@ -137,14 +137,14 @@ export function TradeDialog({type, vault, onClose}: Props) {
               disabled={busy}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="mt-2 w-full rounded-lg border border-[#355069] bg-[#081521] p-3 text-[28px] text-white outline-none focus:border-[#d9c239]"
+              className="folio-field mt-2 p-4 text-[32px] font-medium tracking-[-0.04em]"
             />
-            <div className="my-5 rounded-lg border border-[#263b51] bg-[#091521] p-[14px]">
+            <div className="my-6 border-y border-[#cdd3ca] py-4">
               <Row label="Share price" value={sharePrice === null ? 'Unavailable' : money(sharePrice)} />
               <Row label="Estimated shares" value={estShares === null ? '—' : estShares.toFixed(4)} />
               <Row label="Fee" value="$0.00" />
             </div>
-            <p className="text-[12px] leading-[1.65] text-[#8396ad]">
+            <p className="text-[12px] leading-[1.7] text-[#6b746c]">
               Shares are priced from live stock prices signed by the Folio server and checked by the vault.
               Your USDT stays in the vault until the curator invests it. You will sign up to two
               transactions: a USDT approval and the deposit.
@@ -152,7 +152,7 @@ export function TradeDialog({type, vault, onClose}: Props) {
           </>
         ) : (
           <>
-            <span className="mt-[17px] block text-[13px] font-semibold text-[#dce6f1]">How much of your position</span>
+            <span className="mt-[17px] block text-[12px] font-semibold text-[#3d4a41]">How much of your position</span>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {PERCENTS.map((p) => (
                 <button
@@ -161,17 +161,17 @@ export function TradeDialog({type, vault, onClose}: Props) {
                   disabled={pending}
                   aria-pressed={percent === p}
                   onClick={() => setPercent(p)}
-                  className={`rounded-[7px] border p-3 text-[15px] ${
-                    percent === p ? 'border-[#d8c13a] bg-[#2b2814] text-[#f2d568]' : 'border-[#31475d] bg-[#101e2e] text-[#aebdce]'
+                  className={`rounded-full border p-3 text-[14px] font-semibold transition ${
+                    percent === p ? 'border-[#2b3a30] bg-[#2b3a30] text-[#f7f8f3]' : 'border-[#b9c1b8] bg-transparent text-[#59645c]'
                   }`}
                 >
                   {p}%
                 </button>
               ))}
             </div>
-            <div className="my-5 rounded-lg border border-[#263b51] bg-[#091521] p-[14px]">
+            <div className="my-6 border-y border-[#cdd3ca] py-4">
               <Row label="Shares to burn" value={tokenAmount(redeemShares, 18, 6)} />
-              <p className="mb-1 mt-3 text-[12px] font-semibold text-[#dce6f1]">You receive in kind</p>
+              <p className="mb-1 mt-4 text-[12px] font-semibold text-[#3d4a41]">You receive in kind</p>
               {payout ? (
                 payout.assets.map((asset, i) => {
                   const h = symbolOf(asset);
@@ -187,23 +187,23 @@ export function TradeDialog({type, vault, onClose}: Props) {
                   );
                 })
               ) : previewError ? (
-                <p className="text-[12px] text-[#ff9ba5]">
+                <p className="text-[12px] text-[#a14343]">
                   {previewError} One of the vault&apos;s tokens may be paused by its issuer. Leave it behind below
                   to withdraw everything else.
                 </p>
               ) : (
-                <p className="text-[12px] text-[#8396ad]">Calculating…</p>
+                <p className="text-[12px] text-[#6b746c]">Calculating…</p>
               )}
             </div>
             {showForfeit || previewError ? (
-              <fieldset className="mb-4 rounded-lg border border-[#31475d] p-[14px]">
-                <legend className="px-1 text-[12px] font-semibold text-[#dce6f1]">Leave tokens behind</legend>
-                <p className="mb-2 text-[11px] leading-[1.5] text-[#8396ad]">
+              <fieldset className="mb-4 rounded-2xl border border-[#b9c1b8] p-[14px]">
+                <legend className="px-1 text-[12px] font-semibold text-[#3d4a41]">Leave tokens behind</legend>
+                <p className="mb-2 text-[11px] leading-[1.5] text-[#6b746c]">
                   Your share of a ticked token stays in the vault for the other holders. Use this only if a token
                   cannot be transferred.
                 </p>
                 {leavable.map((h) => (
-                  <label key={h.asset} className="my-1 flex items-center gap-2 text-[12px] text-[#cbd7e4]">
+                  <label key={h.asset} className="my-1 flex items-center gap-2 text-[12px] text-[#3d4a41]">
                     <input
                       type="checkbox"
                       disabled={pending}
@@ -220,26 +220,26 @@ export function TradeDialog({type, vault, onClose}: Props) {
               <button
                 type="button"
                 onClick={() => setShowForfeit(true)}
-                className="mb-3 border-0 bg-transparent p-0 text-[12px] text-[#72dcca] hover:text-[#a1f0e2]"
+                className="mb-3 border-0 bg-transparent p-0 text-[12px] font-semibold text-[#237b68] hover:underline"
               >
                 A token won&apos;t transfer? Leave it behind
               </button>
             )}
-            <p className="rounded-lg border border-[#29465a] bg-[#0b2230] p-3 text-[11px] leading-[1.65] text-[#9bb4c8]">
+            <p className="border-l-2 border-[#237b68] pl-4 text-[11px] leading-[1.7] text-[#59645c]">
               You get your exact share of every holding, in kind. That means stock tokens as well as
               USDT. Selling those tokens is up to you. Withdrawals work even when the vault is paused.
             </p>
           </>
         )}
 
-        <p role="alert" className="mt-2 min-h-[18px] text-[12px] text-[#ff9ba5]">
+        <p role="alert" className="mt-3 min-h-[18px] text-[12px] text-[#a14343]">
           {error}
         </p>
 
         <button
           type="submit"
           disabled={busy || pending || (type === 'withdraw' && (redeemShares === BigInt(0) || !payout))}
-          className="mt-3 w-full rounded-lg border border-[#e6c52d] bg-[#f2d23d] px-[18px] py-[13px] text-[12px] font-[900] text-[#111827] hover:bg-[#ffe768] disabled:opacity-45"
+          className="folio-button-primary mt-3 w-full"
         >
           {type === 'invest' ? STEP_LABEL[step] : pending ? 'Confirm in your wallet…' : 'Confirm withdrawal'}
         </button>
@@ -251,8 +251,8 @@ export function TradeDialog({type, vault, onClose}: Props) {
 function Row({label, value}: {label: string; value: string}) {
   return (
     <div className="my-[7px] flex items-center justify-between gap-[10px] text-[12px]">
-      <span className="text-[#7f92a9]">{label}</span>
-      <strong className="text-[#eaf0f7]">{value}</strong>
+      <span className="text-[#6b746c]">{label}</span>
+      <strong className="text-[#2b3a30]">{value}</strong>
     </div>
   );
 }

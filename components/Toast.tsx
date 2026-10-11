@@ -33,7 +33,7 @@ export function ToastProvider({children}: {children: ReactNode}) {
         className="pointer-events-none fixed top-6 left-1/2 z-50 max-w-[90%] -translate-x-1/2 transition-all"
       >
         {toast && (
-          <div className="animate-in fade-in slide-in-from-top-3 flex items-center gap-2.5 rounded-full border border-white/15 bg-slate-950/92 px-5 py-3 text-[13px] font-semibold tracking-tight text-white shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+          <div className="folio-enter flex items-center gap-2.5 rounded-full border border-[#aeb8ad] bg-[#f7f8f3]/95 px-5 py-3 text-[12px] font-semibold tracking-tight text-[#2b3a30] shadow-[0_16px_40px_rgba(43,58,48,0.16)] backdrop-blur-xl">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />

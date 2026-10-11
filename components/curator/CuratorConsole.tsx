@@ -1,10 +1,10 @@
 'use client';
 
 import {useMemo, useState} from 'react';
-import Link from 'next/link';
 import type {Address} from 'viem';
 import {useChainId, useConnection} from 'wagmi';
-import {WalletButton} from '@/components/WalletButton';
+import {AnimatedBrandFooter} from '@/components/AnimatedBrandFooter';
+import {Header} from '@/components/Header';
 import {useVaults, type VaultView} from '@/lib/contracts/hooks';
 import {deploymentFor} from '@/lib/contracts/addresses';
 import {appChainLabel} from '@/lib/contracts/wagmi';
@@ -19,14 +19,6 @@ import {sameAddress} from './model';
 import {useCuratorActions} from './useCuratorActions';
 import {VaultOverviewCard} from './VaultOverviewCard';
 
-const STATE_STYLE: Record<VaultView['state'], string> = {
-  ACTIVE: 'border-[#246158] bg-[#123a36] text-[#6ee7d1]',
-  PAUSED: 'border-[#66541e] bg-[#28210f] text-[#f2d568]',
-  SEEDED: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
-  DRAFT: 'border-[#43536b] bg-[#192638] text-[#a8b7ca]',
-  CLOSED: 'border-[#69333d] bg-[#2a1820] text-[#ff9ba5]',
-};
-
 type ManagerTab = 'plan' | 'rebalance' | 'activity';
 type MobileView = 'controls' | 'map';
 
@@ -40,89 +32,31 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
   const [mobileView, setMobileView] = useState<MobileView>('map');
   const [createOpen, setCreateOpen] = useState(false);
 
-  const managed = useMemo(
-    () => vaults
-      .filter((vault) => sameAddress(vault.manager, address))
-      .sort((left, right) => left.address.localeCompare(right.address)),
-    [address, vaults],
-  );
+  const managed = useMemo(() => vaults.filter((vault) => sameAddress(vault.manager, address)).sort((left, right) => left.address.localeCompare(right.address)), [address, vaults]);
   const selected = managed.find((vault) => vault.address === selectedAddress) ?? managed[0] ?? null;
   const managerAllowed = Boolean(address && selected && sameAddress(selected.manager, address));
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[#050b14] text-[#e8eef7]">
-      {/* Apple Pro Studio Header */}
-      <header className="flex h-16 items-center justify-between border-b border-white/[0.08] bg-[#08101d]/85 px-4 backdrop-blur-xl sm:px-6">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="group flex items-center gap-2.5 text-[18px] font-bold tracking-tight text-white no-underline sm:text-[20px]">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-b from-[#f3ba2f] to-[#d89e1b] font-mono text-[15px] font-bold text-slate-950 shadow-sm ring-1 ring-white/25 transition-transform group-hover:scale-105">
-              f
-            </div>
-            <span className="tracking-[-0.03em]">
-              folio<span className="font-normal text-slate-400">lab</span>
-            </span>
-            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-amber-300">
-              STUDIO
-            </span>
-          </Link>
-
-          {/* Segmented Switcher to Investor Portal */}
-          <nav className="ml-2 hidden items-center rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md sm:flex">
-            <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold text-white shadow-2xs">
-              Curator Studio
-            </span>
-            <Link
-              href="/"
-              className="apple-press rounded-full px-3 py-1 text-[12px] font-medium text-slate-400 transition-colors hover:text-white"
-            >
-              Investor Portal ↗
-            </Link>
-          </nav>
+    <div className="min-h-[100dvh] bg-[#ebeee7]">
+      <Header />
+      <main className="site-container py-7 sm:py-10">
+        <div className="mb-7 flex flex-col gap-5 border-b border-[#aeb8ad] pb-7 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="eyebrow">Curator studio · {appChainLabel}</p><h1 className="font-editorial mt-3 text-[clamp(34px,5vw,58px)] font-medium leading-none tracking-[-0.045em]">Manage the route.</h1></div>
+          <button type="button" onClick={() => setCreateOpen(true)} className="folio-button-primary self-start sm:self-auto">+ Create vault</button>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <span className="hidden items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-300 lg:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            {appChainLabel}
-          </span>
-          <WalletButton />
-        </div>
-      </header>
-
-      <main className="flex h-[calc(100dvh-64px)] min-h-0 flex-col p-2.5 sm:p-3.5">
-        <div className="mb-2.5 grid grid-cols-2 rounded-full border border-white/10 bg-[#0c1626] p-1 md:hidden">
-          <MobileToggle active={mobileView === 'controls'} onClick={() => setMobileView('controls')}>Manager Console</MobileToggle>
-          <MobileToggle active={mobileView === 'map'} onClick={() => setMobileView('map')}>Capital Map</MobileToggle>
+        <div className="folio-segmented mb-5 grid w-full grid-cols-2 md:hidden">
+          <MobileToggle active={mobileView === 'controls'} onClick={() => setMobileView('controls')}>Manager console</MobileToggle>
+          <MobileToggle active={mobileView === 'map'} onClick={() => setMobileView('map')}>Capital map</MobileToggle>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-3.5 md:grid-cols-[380px_minmax(0,1fr)]">
-          <aside className={`${mobileView === 'controls' ? 'flex' : 'hidden'} min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c1626]/95 shadow-[0_20px_70px_rgba(0,0,0,0.5)] backdrop-blur-xl md:flex`}>
-            <div className="border-b border-white/[0.08] p-3.5 sm:p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <span className="font-mono text-[10px] font-bold tracking-[1.5px] text-[#59d8c4] uppercase">
-                  MANAGER COCKPIT
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCreateOpen(true)}
-                  className="apple-press rounded-full border border-amber-400/40 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-3.5 py-1.5 text-[12px] font-bold text-slate-950 shadow-sm hover:from-amber-300 hover:to-amber-500"
-                >
-                  + Create Vault
-                </button>
-              </div>
-              <VaultPicker
-                connected={isConnected}
-                managed={managed}
-                selected={selected}
-                loading={isLoading}
-                refreshing={isFetching}
-                error={error instanceof Error ? error.message : null}
-                onSelect={setSelectedAddress}
-                onRefresh={() => void refetch()}
-              />
+        <div className="grid min-h-[680px] gap-6 md:grid-cols-[370px_minmax(0,1fr)]">
+          <aside className={`${mobileView === 'controls' ? 'flex' : 'hidden'} flex-col border border-[#c2c9c0] bg-[#f7f8f3]/60 md:flex`}>
+            <div className="border-b border-[#cdd3ca] p-4">
+              <VaultPicker connected={isConnected} managed={managed} selected={selected} loading={isLoading} refreshing={isFetching} error={error instanceof Error ? error.message : null} onSelect={(next) => { setSelectedAddress(next); setManagerTab('plan'); }} onRefresh={() => void refetch()} />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#344860_#0c1626] [scrollbar-width:thin]">
+            <div className="flex-1">
               {selected ? (
                 <>
                   <VaultStatus
@@ -133,112 +67,47 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
                     onActivate={() => void activateVault(selected.address)}
                   />
                   <VaultOverviewCard vault={selected} />
-                  <div className="sticky top-0 z-10 border-y border-white/[0.08] bg-[#0c1626]/95 p-2 backdrop-blur-xl">
-                    <div className="grid grid-cols-3 rounded-full bg-white/5 p-1">
+                  <div className="border-y border-[#cdd3ca] bg-[#f1f3ee] p-2">
+                    <div className="folio-segmented grid w-full grid-cols-3">
                       <TabButton active={managerTab === 'plan'} onClick={() => setManagerTab('plan')}>Plan</TabButton>
                       <TabButton active={managerTab === 'rebalance'} onClick={() => setManagerTab('rebalance')}>Rebalance</TabButton>
                       <TabButton active={managerTab === 'activity'} onClick={() => setManagerTab('activity')}>Activity</TabButton>
                     </div>
                   </div>
-                  <div className="p-3.5">
-                    {managerTab === 'plan' ? (
-                      <PlanCard key={`${selected.address}-${selected.plan?.version ?? 0}`} vault={selected} managerAllowed={managerAllowed} />
-                    ) : managerTab === 'rebalance' ? (
-                      <RebalanceCard
-                        key={`${selected.address}-${selected.plan?.version ?? 0}-${selected.holdings.map((holding) => `${holding.asset}:${holding.amount}`).join('|')}`}
-                        vault={selected}
-                        managerAllowed={managerAllowed}
-                      />
-                    ) : (
-                      <ActivityPanel vaultName={selected.name} vaultAddress={selected.address} />
-                    )}
+                  <div className="p-4">
+                    {managerTab === 'plan' ? <PlanCard key={`${selected.address}-${selected.plan?.version ?? 0}`} vault={selected} managerAllowed={managerAllowed} /> : managerTab === 'rebalance' ? <RebalanceCard key={`${selected.address}-${selected.plan?.version ?? 0}-${selected.holdings.map((holding) => `${holding.asset}:${holding.amount}`).join('|')}`} vault={selected} managerAllowed={managerAllowed} /> : <ActivityPanel vaultName={selected.name} vaultAddress={selected.address} />}
                   </div>
                 </>
               ) : (
-                <div className="grid min-h-full place-items-center p-8 text-center">
-                  <div>
-                    <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/5 font-mono text-[16px] text-amber-400">V</span>
-                    <p className="mt-4 text-[15px] font-bold text-white">No managed vaults</p>
-                    <p className="mt-2 text-[12px] leading-[1.6] text-slate-400">{isConnected ? 'This wallet does not manage a vault yet. Create one or refresh after it is indexed.' : 'Connect the manager wallet to load its vault islands.'}</p>
-                    <button type="button" onClick={() => setCreateOpen(true)} className="apple-press mt-5 rounded-full border border-amber-400/30 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-5 py-2.5 text-[13px] font-bold text-slate-950 shadow-md">Create Investment Pool</button>
-                  </div>
-                </div>
+                <div className="grid min-h-full place-items-center p-8 text-center"><div><span className="font-editorial text-[52px] text-[#849087]">V</span><p className="font-editorial mt-3 text-[25px] font-medium">No managed vaults</p><p className="mt-3 text-[12px] leading-6 text-[#6b746c]">{isConnected ? 'This wallet does not manage a vault yet. Create one or refresh after it is indexed.' : 'Connect the manager wallet to load its vault islands.'}</p><button type="button" onClick={() => setCreateOpen(true)} className="folio-button-primary mt-6">Create investment pool</button></div></div>
               )}
             </div>
           </aside>
 
-          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} relative min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#071322] shadow-[0_20px_70px_rgba(0,0,0,0.5)] md:flex`}>
-            <AssetMap
-              vaults={managed}
-              selectedAddress={selected?.address ?? null}
-              connectedAddress={address}
-              artSample={artSample}
-              onSelect={(vault) => {
-                setSelectedAddress(vault);
-                setMobileView('controls');
-              }}
-            />
-            {selected && <ActivityStrip vaultName={selected.name} vaultAddress={selected.address} onOpen={() => {
-                  setManagerTab('activity');
-                  setMobileView('controls');
-                }} />}
+          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} map-frame relative h-[620px] flex-col md:flex md:h-auto md:min-h-[680px]`}>
+            <AssetMap vaults={managed} selectedAddress={selected?.address ?? null} connectedAddress={address} artSample={artSample} onSelect={(vault) => { setSelectedAddress(vault); setMobileView('controls'); }} />
+            {selected && <ActivityStrip vaultName={selected.name} vaultAddress={selected.address} onOpen={() => { setManagerTab('activity'); setMobileView('controls'); }} />}
           </section>
         </div>
       </main>
 
+      <AnimatedBrandFooter />
+
       <CuratorModal open={createOpen} title="Create and seed a vault" onClose={() => setCreateOpen(false)}>
-        <CreateVaultCard
-          connected={isConnected}
-          deploymentReady={Boolean(deploymentFor(chainId))}
-          action={action}
-          onCreate={createAndSeed}
-          onCreated={(vault) => {
-            setSelectedAddress(vault);
-            setCreateOpen(false);
-            setMobileView('controls');
-            void refetch();
-          }}
-        />
+        <CreateVaultCard connected={isConnected} deploymentReady={Boolean(deploymentFor(chainId))} action={action} onCreate={createAndSeed} onCreated={(vault) => { setSelectedAddress(vault); setCreateOpen(false); setMobileView('controls'); void refetch(); }} />
       </CuratorModal>
     </div>
   );
 }
 
-interface VaultPickerProps {
-  connected: boolean;
-  managed: VaultView[];
-  selected: VaultView | null;
-  loading: boolean;
-  refreshing: boolean;
-  error: string | null;
-  onSelect: (address: Address) => void;
-  onRefresh: () => void;
-}
+interface VaultPickerProps { connected: boolean; managed: VaultView[]; selected: VaultView | null; loading: boolean; refreshing: boolean; error: string | null; onSelect: (address: Address) => void; onRefresh: () => void; }
 
 function VaultPicker({connected, managed, selected, loading, refreshing, error, onSelect, onRefresh}: VaultPickerProps) {
-  const message = !connected
-    ? 'Connect manager wallet'
-    : error
-      ? `Vault API unavailable: ${error}`
-      : loading
-        ? 'Loading managed vaults…'
-        : managed.length === 0
-          ? 'No vaults managed by this wallet'
-          : null;
-
+  const message = !connected ? 'Connect manager wallet' : error ? `Vault API unavailable: ${error}` : loading ? 'Loading managed vaults…' : managed.length === 0 ? 'No vaults managed by this wallet' : null;
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-[#2b3e55] bg-[#08131f] p-2">
-      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-[#30445c] bg-[#101f30] font-mono text-[11px] text-[#f2d23d]">V</span>
-      <div className="min-w-0 flex-1">
-        {message ? (
-          <p className={`truncate text-[11px] ${error ? 'text-[#ff9ba5]' : 'text-[#8394ab]'}`} title={message}>{message}</p>
-        ) : (
-          <select aria-label="Selected managed vault" value={selected?.address ?? ''} onChange={(event) => onSelect(event.target.value as Address)} className="w-full bg-transparent text-[12px] font-[750] text-white outline-none">
-            {managed.map((vault) => <option key={vault.address} value={vault.address} className="bg-[#111b2a]">{vault.name} ({vault.symbol})</option>)}
-          </select>
-        )}
-      </div>
-      <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Refresh vaults" className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-[#2d4058] font-mono text-[14px] text-[#8fa1b8] hover:text-white disabled:opacity-50">{refreshing ? '…' : '↻'}</button>
+    <div>
+      <div className="mb-2 flex items-center justify-between"><span className="eyebrow">Managed vault</span><button type="button" onClick={onRefresh} disabled={refreshing} className="folio-button-quiet min-h-0 px-2 py-1 text-[10px]">{refreshing ? 'Refreshing…' : 'Refresh'}</button></div>
+      {message ? <p className={`border-b border-[#cdd3ca] py-3 text-[11px] ${error ? 'text-[#a14343]' : 'text-[#6b746c]'}`} title={message}>{message}</p> : <select aria-label="Selected managed vault" value={selected?.address ?? ''} onChange={(event) => onSelect(event.target.value as Address)} className="folio-field text-[12px] font-semibold">{managed.map((vault) => <option key={vault.address} value={vault.address}>{vault.name} ({vault.symbol})</option>)}</select>}
     </div>
   );
 }
@@ -259,23 +128,33 @@ function VaultStatus({
   const busy = action === 'approving' || action === 'seeding' || action === 'activating';
 
   return (
-    <div className="border-b border-[#24344a] px-4 py-2.5">
+    <div className="border-b border-[#cdd3ca] px-4 py-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate font-mono text-[9px] text-[#788aa1]">Manager {shortAddress(vault.manager)}</p>
-        <span className={`shrink-0 rounded border px-2 py-1 font-mono text-[9px] ${STATE_STYLE[vault.state]}`}>{vault.state}</span>
+        <p className="truncate text-[10px] text-[#717b72]">Manager {shortAddress(vault.manager)}</p>
+        <span
+          className={`folio-status ${
+            vault.state === 'ACTIVE'
+              ? 'folio-status-active'
+              : vault.state === 'CLOSED'
+                ? 'folio-status-closed'
+                : 'folio-status-neutral'
+          }`}
+        >
+          {vault.state}
+        </span>
       </div>
 
       {vault.state === 'DRAFT' && managerAllowed && (
-        <div className="mt-3 rounded-lg border border-[#66541e] bg-[#28210f] p-3 text-[11px] leading-[1.5] text-[#f2d568]">
-          <strong className="block text-[#f3ba2f]">Vault in DRAFT — Initial Seed Required</strong>
-          <p className="mt-1 text-[#d5c378]">
+        <div className="mt-4 border-l-2 border-[#b18b15] pl-3 text-[11px] leading-5 text-[#6f5c0d]">
+          <strong className="block text-[#171c18]">Vault in DRAFT — Initial Seed Required</strong>
+          <p className="mt-1 text-[#717b72]">
             This vault is deployed on-chain but needs an initial seed deposit (min 10 USDT) to become active.
           </p>
           <button
             type="button"
             onClick={onSeed}
             disabled={busy}
-            className="apple-press mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-3.5 py-1 text-[11px] font-bold text-slate-950 hover:brightness-110 disabled:opacity-50"
+            className="folio-button-primary mt-2 min-h-0 px-3 py-1 text-[11px]"
           >
             {action === 'approving' ? 'Approving USDT…' : action === 'seeding' ? 'Seeding Vault…' : 'Deposit 10 USDT Seed →'}
           </button>
@@ -283,17 +162,17 @@ function VaultStatus({
       )}
 
       {vault.state === 'SEEDED' && (
-        <div className="mt-3 rounded-lg border border-[#5f5020] bg-[#231f12] p-3 text-[11px] leading-[1.5] text-[#d9c66b]">
-          <strong className="block text-[#f3d756]">Vault in SEEDED — Pending Activation</strong>
-          <p className="mt-1 text-[#c2b265]">
-            Initial deposit received! Activate the vault to enable curator rebalancing and open investor deposits.
+        <div className="mt-4 border-l-2 border-[#b18b15] pl-3 text-[11px] leading-5 text-[#6f5c0d]">
+          <strong className="block text-[#171c18]">Waiting for Guardian activation</strong>
+          <p className="mt-1 text-[#717b72]">
+            Initial deposit received! Manager trading remains locked until <code>activate()</code> is confirmed.
           </p>
           {managerAllowed && (
             <button
               type="button"
               onClick={onActivate}
               disabled={busy}
-              className="apple-press mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-gradient-to-b from-[#34d399] to-[#059669] px-3.5 py-1 text-[11px] font-bold text-slate-950 hover:brightness-110 disabled:opacity-50"
+              className="folio-button-primary mt-2 min-h-0 px-3 py-1 text-[11px]"
             >
               {action === 'activating' ? 'Activating…' : 'Activate Vault (Guardian) →'}
             </button>
@@ -301,15 +180,14 @@ function VaultStatus({
         </div>
       )}
 
-      {!managerAllowed && <p className="mt-3 rounded-lg border border-[#69333d] bg-[#2a1820] p-2.5 text-[11px] leading-[1.5] text-[#ff9ba5]">Manager actions are disabled for this wallet.</p>}
+      {!managerAllowed && (
+        <p className="mt-4 border-l-2 border-[#a14343] pl-3 text-[11px] leading-5 text-[#8f3e3e]">
+          Manager actions are disabled for this wallet.
+        </p>
+      )}
     </div>
   );
 }
 
-function TabButton({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) {
-  return <button type="button" onClick={onClick} className={`rounded-md px-3 py-2 text-[11px] font-[800] transition ${active ? 'bg-[#1a2a3d] text-white shadow-sm' : 'text-[#7e90a8] hover:text-white'}`}>{children}</button>;
-}
-
-function MobileToggle({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) {
-  return <button type="button" onClick={onClick} className={`rounded-md px-3 py-2 text-[12px] font-[800] ${active ? 'bg-[#f2d23d] text-[#111827]' : 'text-[#8ea0b7]'}`}>{children}</button>;
-}
+function TabButton({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) { return <button type="button" onClick={onClick} className="folio-segment" data-active={active}>{children}</button>; }
+function MobileToggle({active, onClick, children}: {active: boolean; onClick: () => void; children: React.ReactNode}) { return <button type="button" onClick={onClick} className="folio-segment" data-active={active}>{children}</button>; }

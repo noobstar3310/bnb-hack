@@ -65,21 +65,21 @@ export function AccountBar({vaults}: {vaults: VaultView[]}) {
   ];
 
   return (
-    <section aria-label="Your account" className="mb-3 grid grid-cols-2 overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] sm:grid-cols-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
+    <section aria-label="Your account" className="grid min-w-0 max-w-full grid-cols-2 overflow-hidden border-y border-[#aeb8ad] sm:grid-cols-4 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
       {cells.map((cell) => (
-        <div key={cell.label} className="border-b border-r border-[#24344a] px-4 py-3 last:border-r-0 sm:border-b-0">
-          <span className="block font-mono text-[8px] font-[800] tracking-[0.9px] text-[#71849b]">{cell.label.toUpperCase()}</span>
-          <strong className="mt-1.5 block truncate text-[16px] font-[800] tracking-[-0.4px] text-[#edf3fa] sm:text-[18px]">{cell.value}</strong>
+        <div key={cell.label} className="min-w-0 border-b border-r border-[#cdd3ca] px-3 py-5 last:border-r-0 sm:border-b-0 sm:px-5">
+          <span className="block text-[9px] font-bold tracking-[0.11em] text-[#7a837b]">{cell.label.toUpperCase()}</span>
+          <strong className="mt-2 block truncate text-[clamp(18px,2vw,26px)] font-semibold tracking-[-0.035em] text-[#2b3a30]">{cell.value}</strong>
         </div>
       ))}
 
-      <div className="col-span-2 flex items-center justify-between gap-3 px-4 py-3 sm:col-span-4 lg:col-span-1 lg:min-w-[220px] lg:border-l lg:border-[#24344a]">
+      <div className="col-span-2 flex items-center justify-between gap-3 px-3 py-5 sm:col-span-4 sm:px-5 lg:col-span-1 lg:min-w-[220px] lg:border-l lg:border-[#cdd3ca]">
         <div>
-          <span className="block font-mono text-[8px] font-[800] tracking-[0.9px] text-[#71849b]">NETWORK</span>
-          <strong className="mt-1.5 block text-[12px] text-[#cbd7e5]">{appChainLabel}</strong>
+          <span className="block text-[9px] font-bold tracking-[0.11em] text-[#7a837b]">NETWORK</span>
+          <strong className="mt-2 block text-[12px] text-[#3d4a41]">{appChainLabel}</strong>
         </div>
         {isLocal && (
-          <button type="button" disabled={!address} onClick={faucet} className="rounded-md border border-[#66591d] bg-[#2b2610] px-3 py-2 text-[10px] font-[800] text-[#f2d568] hover:border-[#a98f27] disabled:opacity-40">
+          <button type="button" disabled={!address} onClick={faucet} className="folio-button-secondary min-h-0 shrink-0 px-2.5 py-2 text-[9px]">
             + Test USDT
           </button>
         )}

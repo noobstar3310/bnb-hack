@@ -94,19 +94,19 @@ export function ActivityFeed({vaults, onSelectVault}: Props) {
   }
 
   return (
-    <section className="overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
-      <header className="flex flex-col gap-3 border-b border-[#26374d] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+    <section className="border-t border-[#aeb8ad]">
+      <header className="flex flex-col gap-5 border-b border-[#cdd3ca] py-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="font-mono text-[8px] font-[800] tracking-[1.2px] text-[#56d8c7]">CONFIRMED ON-CHAIN EVENTS</span>
-          <h2 className="mt-1 text-[20px] font-[800] tracking-[-0.5px] text-[#f2f6fb]">Activity</h2>
-          <p className="mt-1 text-[11px] text-[#8295ac]">Quote previews never appear here.</p>
+          <span className="eyebrow">Confirmed on-chain events</span>
+          <h2 className="font-editorial mt-2 text-[34px] font-medium tracking-[-0.04em]">Activity</h2>
+          <p className="mt-2 text-[11px] text-[#6b746c]">Quote previews never appear here.</p>
         </div>
         <div className="flex min-w-0 items-center gap-2">
           <select
             value={selectedVault}
             onChange={(event) => setSelectedVault(event.target.value)}
             aria-label="Filter by vault"
-            className="min-w-0 flex-1 rounded-md border border-[#344960] bg-[#08131f] px-3 py-2 text-[11px] font-[700] text-[#dce6f2] outline-none focus:border-[#f1cf3c] sm:max-w-[240px]"
+            className="folio-field min-w-0 flex-1 py-2 text-[11px] font-semibold sm:max-w-[240px]"
           >
             <option value="all">All vaults</option>
             {vaults.map((vault) => (
@@ -120,26 +120,23 @@ export function ActivityFeed({vaults, onSelectVault}: Props) {
             onClick={() => refetch()}
             disabled={isFetching}
             title="Refresh on-chain activity"
-            className="flex shrink-0 items-center gap-2 rounded-md border border-[#344960] bg-[#0a1624] px-3 py-2 text-[10px] font-[800] text-[#aebdce] hover:border-[#55708b] hover:text-white disabled:opacity-50"
+            className="folio-button-secondary min-h-0 shrink-0 px-3 py-2 text-[10px]"
           >
-            <span className={`h-2 w-2 rounded-full ${isFetching ? 'animate-pulse bg-[#f1cf3c]' : 'bg-[#43c9b8]'}`} />
+            <span className={`h-2 w-2 rounded-full ${isFetching ? 'animate-pulse bg-[#d8b126]' : 'bg-[#237b68]'}`} />
             LIVE
           </button>
         </div>
       </header>
 
-      <div className="border-b border-[#24354a] bg-[#091522] p-2.5 sm:px-4">
-        <div className="flex gap-1 overflow-x-auto rounded-lg bg-[#07111c] p-1">
+      <div className="border-b border-[#cdd3ca] py-3">
+        <div className="folio-segmented flex max-w-full overflow-x-auto">
           {filters.map((filter) => (
             <button
               key={filter.id}
               type="button"
               onClick={() => setCategory(filter.id)}
-              className={`shrink-0 rounded-md px-3 py-2 text-[10px] font-[800] transition ${
-                category === filter.id
-                  ? 'bg-[#f1cf3c] text-[#101722] shadow-[0_4px_16px_rgba(241,207,60,0.18)]'
-                  : 'text-[#8194aa] hover:bg-[#112136] hover:text-[#e9f0f8]'
-              }`}
+              data-active={category === filter.id}
+              className="folio-segment shrink-0"
             >
               {filter.label}
             </button>
@@ -147,25 +144,25 @@ export function ActivityFeed({vaults, onSelectVault}: Props) {
         </div>
       </div>
 
-      <div className="p-3 sm:p-4">
+      <div>
         {category === 'mine' && !isConnected ? (
           <EmptyState title="Wallet not connected" detail="Connect your wallet to filter deposits and withdrawals made by that address." />
         ) : isLoading ? (
-          <div className="grid min-h-[210px] place-items-center rounded-lg border border-[#24374e] bg-[#091522] text-center">
+          <div className="grid min-h-[210px] place-items-center border-b border-[#cdd3ca] text-center">
             <div>
-              <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#334a64] border-t-[#f1cf3c]" />
-              <p className="mt-3 text-[11px] text-[#8295ac]">Reading confirmed events...</p>
+              <span className="mx-auto block h-6 w-6 animate-spin rounded-full border-2 border-[#b9c1b8] border-t-[#2b3a30]" />
+              <p className="mt-3 text-[11px] text-[#6b746c]">Reading confirmed events...</p>
             </div>
           </div>
         ) : error ? (
-          <div className="rounded-lg border border-[#6c3540] bg-[#28151c] p-5 text-[#f0a7af]">
+          <div className="border-b border-[#b98282] py-6 text-[#8f3e3e]">
             <p className="text-[12px] font-[800]">Activity could not be loaded</p>
-            <p className="mt-1 break-words text-[10px] leading-5 text-[#c98791]">{error.message}</p>
+            <p className="mt-1 break-words text-[10px] leading-5 text-[#a25a5a]">{error.message}</p>
           </div>
         ) : filteredItems.length === 0 ? (
           <EmptyState title="No confirmed transactions" detail={emptyDetail(category)} />
         ) : (
-          <div className="divide-y divide-[#24364c] overflow-hidden rounded-lg border border-[#293c53] bg-[#091522]">
+          <div className="divide-y divide-[#cdd3ca]">
             {filteredItems.map((item) => (
               <ActivityRow
                 key={item.id}
@@ -184,11 +181,11 @@ export function ActivityFeed({vaults, onSelectVault}: Props) {
 
 function EmptyState({title, detail}: {title: string; detail: string}) {
   return (
-    <div className="grid min-h-[210px] place-items-center rounded-lg border border-dashed border-[#31475f] bg-[#091522] px-6 text-center">
+    <div className="grid min-h-[260px] place-items-center border-b border-dashed border-[#aeb8ad] px-6 text-center">
       <div className="max-w-[430px]">
-        <div className="mx-auto grid h-9 w-9 place-items-center rounded-full border border-[#355069] bg-[#0e2032] font-mono text-[12px] text-[#56d8c7]">0</div>
-        <p className="mt-3 text-[13px] font-[800] text-[#dce6f2]">{title}</p>
-        <p className="mt-1 text-[11px] leading-5 text-[#7f92a9]">{detail}</p>
+        <div className="font-editorial mx-auto text-[46px] text-[#879189]">0</div>
+        <p className="font-editorial mt-3 text-[25px] font-medium text-[#2b3a30]">{title}</p>
+        <p className="mt-2 text-[11px] leading-5 text-[#6b746c]">{detail}</p>
       </div>
     </div>
   );
@@ -225,7 +222,7 @@ function ActivityRow({
   const isBsc = appChain.id === 56;
 
   return (
-    <article className="flex flex-col gap-3 p-3.5 transition hover:bg-[#0d1c2c] sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-4 sm:py-4">
+    <article className="flex flex-col gap-3 py-5 transition hover:bg-[#f7f8f3]/45 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-2">
       <div className="flex min-w-0 items-start gap-3">
         <ActivityBadge type={item.type} />
         <div className="min-w-0">
@@ -233,16 +230,16 @@ function ActivityRow({
             <button
               type="button"
               onClick={() => onSelectVault?.(item.vault)}
-              className="text-left text-[12px] font-[800] text-[#edf3fa] hover:text-[#f1cf3c]"
+              className="text-left text-[12px] font-bold text-[#2b3a30] hover:underline"
             >
               {item.vaultName}
             </button>
-            <span className="rounded border border-[#2c425a] bg-[#0c1b2a] px-1.5 py-0.5 font-mono text-[8px] text-[#8ea1b7]">{item.vaultSymbol}</span>
-            <span className="font-mono text-[9px] text-[#74879d]">{formatRealTime(item.timestamp)}</span>
-            <span className="text-[9px] text-[#52677f]">{timeAgo(item.timestamp)}</span>
+            <span className="rounded-full border border-[#b9c1b8] px-1.5 py-0.5 text-[8px] text-[#6b746c]">{item.vaultSymbol}</span>
+            <span className="text-[9px] text-[#788179]">{formatRealTime(item.timestamp)}</span>
+            <span className="text-[9px] text-[#8a938b]">{timeAgo(item.timestamp)}</span>
           </div>
-          <div className="mt-1.5 text-[11px] leading-5 text-[#aebdce]">{renderActivityContent(item)}</div>
-          <span className="mt-1.5 inline-block font-mono text-[8px] text-[#52677f]">BLOCK {item.blockNumber}</span>
+          <div className="mt-1.5 text-[11px] leading-5 text-[#59645c]">{renderActivityContent(item)}</div>
+          <span className="mt-1.5 inline-block text-[8px] text-[#879088]">BLOCK {item.blockNumber}</span>
         </div>
       </div>
 
@@ -253,12 +250,12 @@ function ActivityRow({
             target="_blank"
             rel="noopener noreferrer"
             title="View on BscScan"
-            className="font-mono text-[9px] text-[#8196ad] hover:text-[#f1cf3c]"
+            className="text-[9px] text-[#59645c] hover:underline"
           >
             {shortAddress(item.txHash)} EXTERNAL
           </a>
         ) : (
-          <span title="Local test-chain transaction" className="font-mono text-[9px] text-[#71869e]">
+          <span title="Local test-chain transaction" className="text-[9px] text-[#788179]">
             {shortAddress(item.txHash)} LOCAL
           </span>
         )}
@@ -266,7 +263,7 @@ function ActivityRow({
           type="button"
           onClick={() => onCopy(item.txHash)}
           title="Copy transaction hash"
-          className="rounded border border-[#344960] bg-[#0a1624] px-2 py-1 text-[9px] font-[800] text-[#9cafc3] hover:border-[#f1cf3c] hover:text-[#f1cf3c]"
+          className="rounded-full border border-[#b9c1b8] px-2 py-1 text-[9px] font-bold text-[#59645c] hover:border-[#2b3a30]"
         >
           {copied ? 'COPIED' : 'COPY'}
         </button>
@@ -277,25 +274,25 @@ function ActivityRow({
 
 function ActivityBadge({type}: {type: ActivityType}) {
   const styles: Record<ActivityType, {label: string; className: string}> = {
-    deposit: {label: 'IN', className: 'border-[#25685f] bg-[#0d302d] text-[#65dfce]'},
-    redeem: {label: 'OUT', className: 'border-[#754936] bg-[#2b1e17] text-[#f0a16f]'},
-    rebalance: {label: 'SWAP', className: 'border-[#55477f] bg-[#201b38] text-[#bca9ff]'},
-    plan: {label: 'PLAN', className: 'border-[#375876] bg-[#10263a] text-[#85c6f5]'},
-    seed: {label: 'SEED', className: 'border-[#53612d] bg-[#202812] text-[#c7dc67]'},
+    deposit: {label: 'IN', className: 'border-[#78a69b] bg-[#dfece7] text-[#237b68]'},
+    redeem: {label: 'OUT', className: 'border-[#c99b7e] bg-[#f3e5da] text-[#8d593b]'},
+    rebalance: {label: 'SWAP', className: 'border-[#9b8ebd] bg-[#ebe7f4] text-[#5f4c8b]'},
+    plan: {label: 'PLAN', className: 'border-[#85a5b7] bg-[#e3edf1] text-[#456c80]'},
+    seed: {label: 'SEED', className: 'border-[#a8ac77] bg-[#edefdc] text-[#68702e]'},
   };
   const style = styles[type];
   return <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-md border font-mono text-[7px] font-[900] ${style.className}`}>{style.label}</span>;
 }
 
 function renderActivityContent(item: ActivityItem) {
-  const strong = 'font-[800] text-[#e7eef7]';
+  const strong = 'font-bold text-[#2b3a30]';
   switch (item.type) {
     case 'deposit':
       return (
         <span>
           Deposited <strong className={strong}>{formatDecimal(item.usdtAmount)} USDT</strong> into the vault and minted{' '}
           <strong className={strong}>{formatDecimal(item.sharesMinted)} shares</strong>
-          <span className="ml-1 text-[#71869e]">by {shortAddress(item.investor)}</span>
+          <span className="ml-1 text-[#7b847c]">by {shortAddress(item.investor)}</span>
         </span>
       );
     case 'redeem':
@@ -304,11 +301,11 @@ function renderActivityContent(item: ActivityItem) {
           Redeemed <strong className={strong}>{formatDecimal(item.sharesBurned)} shares</strong> for{' '}
           {item.payouts.map((payout, index) => (
             <span key={payout.asset}>
-              {index > 0 && <span className="mx-1 text-[#63778f]">+</span>}
+              {index > 0 && <span className="mx-1 text-[#7b847c]">+</span>}
               <strong className={strong}>{formatDecimal(payout.amount)} {payout.symbol}</strong>
             </span>
           ))}
-          <span className="ml-1 text-[#71869e]">by {shortAddress(item.investor)}</span>
+          <span className="ml-1 text-[#7b847c]">by {shortAddress(item.investor)}</span>
         </span>
       );
     case 'rebalance':
@@ -316,14 +313,14 @@ function renderActivityContent(item: ActivityItem) {
         <span>
           Curator swapped <strong className={strong}>{formatDecimal(item.sellAmount)} {item.sellSymbol}</strong> for{' '}
           <strong className={strong}>{formatDecimal(item.buyAmount)} {item.buySymbol}</strong>{' '}
-          <span className="rounded border border-[#55477f] bg-[#201b38] px-1.5 py-0.5 text-[8px] font-[800] text-[#bca9ff]">PLAN V{item.planVersion}</span>
+          <span className="rounded-full border border-[#9b8ebd] bg-[#ebe7f4] px-1.5 py-0.5 text-[8px] font-bold text-[#5f4c8b]">PLAN V{item.planVersion}</span>
         </span>
       );
     case 'plan':
       return (
         <span>
           Curator published <strong className={strong}>plan v{item.version}</strong>:{' '}
-          <span className="italic text-[#91a4ba]">&ldquo;{item.planText}&rdquo;</span>
+          <span className="italic text-[#667168]">&ldquo;{item.planText}&rdquo;</span>
         </span>
       );
     case 'seed':
