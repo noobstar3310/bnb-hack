@@ -50,39 +50,64 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
   const managerAllowed = Boolean(address && selected && sameAddress(selected.manager, address));
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-[#07111f] text-[#e8eef7]">
-      <header className="flex h-[64px] items-center gap-3 border-b border-[#203047] bg-[#0a1422]/95 px-4 backdrop-blur sm:px-6">
-        <Link href="/" className="flex items-center gap-2 text-[17px] font-[850] tracking-[-0.4px] text-white no-underline">
-          <span className="grid h-7 w-7 place-items-center bg-[#f2d23d] font-mono text-[13px] text-[#101725] [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">F</span>
-          <span>FOLIO LAB</span>
-        </Link>
-        <nav className="ml-3 hidden h-full items-center gap-6 border-l border-[#203047] pl-6 sm:flex">
-          <span className="flex h-full items-center border-b-2 border-[#f2d23d] text-[13px] font-[750] text-white">Curator</span>
-          <Link href="/" className="text-[13px] text-[#8fa0b7] no-underline hover:text-white">Investor</Link>
-        </nav>
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <span className="hidden rounded border border-[#4b4420] bg-[#211f13] px-2 py-1 font-mono text-[9px] text-[#e7d15d] lg:inline">{appChainLabel.toUpperCase()}</span>
+    <div className="h-[100dvh] overflow-hidden bg-[#050b14] text-[#e8eef7]">
+      {/* Apple Pro Studio Header */}
+      <header className="flex h-16 items-center justify-between border-b border-white/[0.08] bg-[#08101d]/85 px-4 backdrop-blur-xl sm:px-6">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="group flex items-center gap-2.5 text-[18px] font-bold tracking-tight text-white no-underline sm:text-[20px]">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-b from-[#f3ba2f] to-[#d89e1b] font-mono text-[15px] font-bold text-slate-950 shadow-sm ring-1 ring-white/25 transition-transform group-hover:scale-105">
+              f
+            </div>
+            <span className="tracking-[-0.03em]">
+              folio<span className="font-normal text-slate-400">lab</span>
+            </span>
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[10px] font-semibold tracking-wider text-amber-300">
+              STUDIO
+            </span>
+          </Link>
+
+          {/* Segmented Switcher to Investor Portal */}
+          <nav className="ml-2 hidden items-center rounded-full border border-white/10 bg-white/5 p-1 backdrop-blur-md sm:flex">
+            <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-semibold text-white shadow-2xs">
+              Curator Studio
+            </span>
+            <Link
+              href="/"
+              className="apple-press rounded-full px-3 py-1 text-[12px] font-medium text-slate-400 transition-colors hover:text-white"
+            >
+              Investor Portal ↗
+            </Link>
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <span className="hidden items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-300 lg:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            {appChainLabel}
+          </span>
           <WalletButton />
         </div>
       </header>
 
-      <main className="flex h-[calc(100dvh-64px)] min-h-0 flex-col p-2 sm:p-3">
-        <div className="mb-2 grid grid-cols-2 rounded-lg border border-[#26374d] bg-[#0c1726] p-1 md:hidden">
-          <MobileToggle active={mobileView === 'controls'} onClick={() => setMobileView('controls')}>Manager</MobileToggle>
-          <MobileToggle active={mobileView === 'map'} onClick={() => setMobileView('map')}>Capital map</MobileToggle>
+      <main className="flex h-[calc(100dvh-64px)] min-h-0 flex-col p-2.5 sm:p-3.5">
+        <div className="mb-2.5 grid grid-cols-2 rounded-full border border-white/10 bg-[#0c1626] p-1 md:hidden">
+          <MobileToggle active={mobileView === 'controls'} onClick={() => setMobileView('controls')}>Manager Console</MobileToggle>
+          <MobileToggle active={mobileView === 'map'} onClick={() => setMobileView('map')}>Capital Map</MobileToggle>
         </div>
 
-        <div className="grid min-h-0 flex-1 gap-3 md:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className={`${mobileView === 'controls' ? 'flex' : 'hidden'} min-h-0 flex-col overflow-hidden rounded-xl border border-[#26374d] bg-[#0d1827] shadow-[0_20px_70px_rgba(0,0,0,0.3)] md:flex`}>
-            <div className="border-b border-[#24344a] p-3">
+        <div className="grid min-h-0 flex-1 gap-3.5 md:grid-cols-[380px_minmax(0,1fr)]">
+          <aside className={`${mobileView === 'controls' ? 'flex' : 'hidden'} min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c1626]/95 shadow-[0_20px_70px_rgba(0,0,0,0.5)] backdrop-blur-xl md:flex`}>
+            <div className="border-b border-white/[0.08] p-3.5 sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="font-mono text-[9px] font-[800] tracking-[1.7px] text-[#59d8c4]">MANAGER CONSOLE</p>
+                <span className="font-mono text-[10px] font-bold tracking-[1.5px] text-[#59d8c4] uppercase">
+                  MANAGER COCKPIT
+                </span>
                 <button
                   type="button"
                   onClick={() => setCreateOpen(true)}
-                  className="rounded-md border border-[#e6c52d] bg-[#f2d23d] px-3 py-2 text-[11px] font-[850] text-[#111827] hover:bg-[#ffe768]"
+                  className="apple-press rounded-full border border-amber-400/40 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-3.5 py-1.5 text-[12px] font-bold text-slate-950 shadow-sm hover:from-amber-300 hover:to-amber-500"
                 >
-                  + Create
+                  + Create Vault
                 </button>
               </div>
               <VaultPicker
@@ -97,19 +122,19 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
               />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#344860_#0d1827] [scrollbar-width:thin]">
+            <div className="min-h-0 flex-1 overflow-y-auto [scrollbar-color:#344860_#0c1626] [scrollbar-width:thin]">
               {selected ? (
                 <>
                   <VaultStatus vault={selected} managerAllowed={managerAllowed} />
                   <VaultOverviewCard vault={selected} />
-                  <div className="sticky top-0 z-10 border-y border-[#24344a] bg-[#0d1827]/95 p-2 backdrop-blur">
-                    <div className="grid grid-cols-3 rounded-lg bg-[#08121f] p-1">
+                  <div className="sticky top-0 z-10 border-y border-white/[0.08] bg-[#0c1626]/95 p-2 backdrop-blur-xl">
+                    <div className="grid grid-cols-3 rounded-full bg-white/5 p-1">
                       <TabButton active={managerTab === 'plan'} onClick={() => setManagerTab('plan')}>Plan</TabButton>
                       <TabButton active={managerTab === 'rebalance'} onClick={() => setManagerTab('rebalance')}>Rebalance</TabButton>
                       <TabButton active={managerTab === 'activity'} onClick={() => setManagerTab('activity')}>Activity</TabButton>
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-3.5">
                     {managerTab === 'plan' ? (
                       <PlanCard key={`${selected.address}-${selected.plan?.version ?? 0}`} vault={selected} managerAllowed={managerAllowed} />
                     ) : managerTab === 'rebalance' ? (
@@ -124,19 +149,19 @@ export function CuratorConsole({artSample = false}: {artSample?: boolean} = {}) 
                   </div>
                 </>
               ) : (
-                <div className="grid min-h-full place-items-center p-6 text-center">
+                <div className="grid min-h-full place-items-center p-8 text-center">
                   <div>
-                    <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-dashed border-[#3d526c] font-mono text-[#8293aa]">V</span>
-                    <p className="mt-4 text-[14px] font-[750] text-[#d4deea]">No managed vaults</p>
-                    <p className="mt-2 text-[12px] leading-[1.6] text-[#7f90a7]">{isConnected ? 'This wallet does not manage a vault yet. Create one or refresh after it is indexed.' : 'Connect the local manager wallet to load its vault islands.'}</p>
-                    <button type="button" onClick={() => setCreateOpen(true)} className="mt-5 rounded-lg border border-[#e6c52d] bg-[#f2d23d] px-4 py-2.5 text-[12px] font-[850] text-[#111827]">Create investment pool</button>
+                    <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/5 font-mono text-[16px] text-amber-400">V</span>
+                    <p className="mt-4 text-[15px] font-bold text-white">No managed vaults</p>
+                    <p className="mt-2 text-[12px] leading-[1.6] text-slate-400">{isConnected ? 'This wallet does not manage a vault yet. Create one or refresh after it is indexed.' : 'Connect the manager wallet to load its vault islands.'}</p>
+                    <button type="button" onClick={() => setCreateOpen(true)} className="apple-press mt-5 rounded-full border border-amber-400/30 bg-gradient-to-b from-[#f3ba2f] to-[#e5ac24] px-5 py-2.5 text-[13px] font-bold text-slate-950 shadow-md">Create Investment Pool</button>
                   </div>
                 </div>
               )}
             </div>
           </aside>
 
-          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} relative min-h-0 flex-col overflow-hidden rounded-xl border border-[#26374d] bg-[#081827] shadow-[0_20px_70px_rgba(0,0,0,0.32)] md:flex`}>
+          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} relative min-h-0 flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#071322] shadow-[0_20px_70px_rgba(0,0,0,0.5)] md:flex`}>
             <AssetMap
               vaults={managed}
               selectedAddress={selected?.address ?? null}

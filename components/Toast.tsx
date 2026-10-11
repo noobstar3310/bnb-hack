@@ -30,11 +30,15 @@ export function ToastProvider({children}: {children: ReactNode}) {
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed bottom-7 left-1/2 z-10 max-w-[90%] -translate-x-1/2"
+        className="pointer-events-none fixed top-6 left-1/2 z-50 max-w-[90%] -translate-x-1/2 transition-all"
       >
         {toast && (
-          <div className="rounded-[10px] bg-[#17273e] px-5 py-[14px] text-[14px] text-white shadow-[0_5px_20px_#14203930]">
-            {toast}
+          <div className="animate-in fade-in slide-in-from-top-3 flex items-center gap-2.5 rounded-full border border-white/15 bg-slate-950/92 px-5 py-3 text-[13px] font-semibold tracking-tight text-white shadow-[0_16px_40px_rgba(0,0,0,0.35)] backdrop-blur-2xl">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <span>{toast}</span>
           </div>
         )}
       </div>

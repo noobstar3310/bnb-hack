@@ -1,32 +1,43 @@
 'use client';
 
+import Link from 'next/link';
 import {WalletButton} from './WalletButton';
 
 export type ViewMode = 'explore' | 'positions' | 'activity';
 
-const TABS: {id: ViewMode; label: string}[] = [
+const TABS: {id: ViewMode; label: string; icon?: string}[] = [
   {id: 'explore', label: 'Explore'},
-  {id: 'positions', label: 'My positions'},
+  {id: 'positions', label: 'My Positions'},
   {id: 'activity', label: 'Activity'},
 ];
 
 export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode) => void}) {
   return (
-    <header className="flex h-[72px] min-w-0 items-center gap-[12px] border-b border-line-3 bg-white px-[5%] xs:gap-[20px] sm:h-[88px] sm:gap-[56px]">
-      <a
-        href="#"
-        className="flex items-center gap-2 text-[23px] font-[750] tracking-[-1px] text-ink no-underline sm:text-[28px]"
-      >
-        <span className="grid h-[30px] w-[28px] place-items-center rounded-[10px] bg-ink text-lime italic sm:h-9 sm:w-9">
-          f
-        </span>
-        {/* The wordmark only fits beside the tabs and wallet button on wider screens. */}
-        <span className="hidden sm:inline">
-          folio<span className="-ml-[1px] font-normal text-muted-3">lab</span>
-        </span>
-      </a>
+    <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-[5%] backdrop-blur-xl transition-all sm:h-18">
+      {/* Brand Mark */}
+      <div className="flex items-center gap-4">
+        <Link
+          href="/"
+          className="group flex items-center gap-2.5 text-[20px] font-bold tracking-tight text-slate-900 no-underline sm:text-[22px]"
+        >
+          <div className="relative grid h-8 w-8 place-items-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 font-mono text-[16px] italic text-[#bef264] shadow-sm ring-1 ring-white/20 transition-transform group-hover:scale-[1.03] sm:h-9 sm:w-9 sm:rounded-2xl">
+            f
+            <span className="absolute inset-x-1.5 top-0.5 h-[1px] bg-white/30" />
+          </div>
+          <span className="tracking-[-0.03em]">
+            folio<span className="font-normal text-slate-400">lab</span>
+          </span>
+        </Link>
 
-      <nav aria-label="Main navigation" className="flex h-full gap-[14px] sm:gap-8">
+        {/* Network Badge */}
+        <div className="hidden items-center gap-1.5 rounded-full border border-black/[0.05] bg-black/[0.02] px-2.5 py-0.5 text-[11px] font-medium text-slate-600 lg:flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#f3ba2f]" />
+          <span>BNB Chain</span>
+        </div>
+      </div>
+
+      {/* Apple-style Segmented Control */}
+      <nav aria-label="Main navigation" className="flex items-center rounded-full border border-black/[0.05] bg-slate-100/80 p-1 backdrop-blur-md shadow-inner">
         {TABS.map((tab) => {
           const active = mode === tab.id;
           return (
@@ -35,18 +46,31 @@ export function Header({mode, onMode}: {mode: ViewMode; onMode: (mode: ViewMode)
               type="button"
               aria-current={active ? 'page' : undefined}
               onClick={() => onMode(tab.id)}
-              className={`relative border-0 bg-transparent text-[13px] sm:text-[15px] ${
-                active ? 'font-[650] text-ink' : 'text-[#6c768a]'
+              className={`apple-press relative rounded-full px-3 py-1.5 text-[12px] tracking-tight sm:px-4 sm:text-[13px] ${
+                active
+                  ? 'bg-white font-semibold text-slate-900 shadow-[0_1px_4px_rgba(0,0,0,0.08),0_1px_1px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04]'
+                  : 'font-medium text-slate-500 hover:text-slate-800'
               }`}
             >
               {tab.label}
-              {active && <span className="absolute inset-x-0 bottom-0 h-[3px] bg-ink" />}
             </button>
           );
         })}
       </nav>
 
-      <WalletButton />
+      {/* Actions: Curator Link + Wallet */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        <Link
+          href="/curator"
+          className="apple-press hidden items-center gap-1.5 rounded-full border border-black/[0.08] bg-white/70 px-3.5 py-1.5 text-[12px] font-semibold tracking-tight text-slate-700 shadow-xs hover:border-black/[0.15] hover:bg-white hover:text-slate-950 sm:inline-flex"
+        >
+          <span>Curator Studio</span>
+          <span className="text-[10px] text-slate-400">↗</span>
+        </Link>
+
+        <WalletButton />
+      </div>
     </header>
   );
 }
+

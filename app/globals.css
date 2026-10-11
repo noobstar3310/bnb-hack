@@ -9,61 +9,141 @@
   --breakpoint-md: 1051px;
   --breakpoint-lg: 1500px;
 
-  --color-ink: #142039;
-  --color-ink-soft: #18243a;
-  --color-ink-hover: #2e4161;
-  --color-page: #f4f6f9;
-  --color-muted: #647187;
-  --color-muted-2: #6d788a;
-  --color-muted-3: #748094;
-  --color-line: #e0e5ed;
-  --color-line-2: #dce3ec;
-  --color-line-3: #dde3eb;
-  --color-field: #d9e0e9;
-  --color-field-bg: #f9fafc;
-  --color-positive: #237d66;
-  --color-negative: #b44b55;
-  --color-error: #ad354b;
-  --color-lime: #cbfa76;
-  --color-lime-2: #d2fa8f;
-  --color-pill-bg: #f4fadf;
-  --color-pill-line: #dbe2c7;
-  --color-panel-line: #393858;
-  --color-panel-btn: #223149;
-  --color-panel-btn-line: #48556a;
-  --color-panel-text: #afbbce;
+  --color-ink: #0f172a;
+  --color-ink-soft: #182238;
+  --color-ink-hover: #263554;
+  --color-page: #f8fafc;
+  --color-page-tint: #f1f5f9;
+  --color-muted: #64748b;
+  --color-muted-2: #6d7d93;
+  --color-muted-3: #94a3b8;
+  --color-line: #e2e8f0;
+  --color-line-2: #cbd5e1;
+  --color-line-3: #e2e8f0;
+  --color-field: #cbd5e1;
+  --color-field-bg: #f8fafc;
+  --color-positive: #10b981;
+  --color-positive-dark: #059669;
+  --color-negative: #f43f5e;
+  --color-error: #e11d48;
+  --color-lime: #a3e635;
+  --color-lime-2: #bef264;
+  --color-pill-bg: #f0fdf4;
+  --color-pill-line: #bbf7d0;
+  --color-panel-line: #334155;
+  --color-panel-btn: #1e293b;
+  --color-panel-btn-line: #475569;
+  --color-panel-text: #94a3b8;
 
+  /* Apple / Pro Brand Accents */
+  --color-apple-blue: #0071e3;
+  --color-apple-blue-hover: #0077ed;
+  --color-bnb-gold: #f3ba2f;
+  --color-bnb-gold-hover: #e5ac24;
 
   /* Data-viz palette. Validated with the dataviz skill's checker against the
      actual #ffffff chart surface: CVD ΔE 9.2, normal-vision ΔE 24.0, all pass.
      Categorical slots are assigned in fixed order and never cycled. */
-  --color-series-1: #2a78d6;
-  --color-series-2: #eb6834;
-  --color-series-3: #1baf7a;
-  --color-diverge-pos: #2a78d6;
-  --color-diverge-neg: #d03b3b;
-  --color-diverge-mid: #f0efec;
-  --color-status-good: #0ca30c;
-  --color-status-warning: #fab219;
-  --color-status-critical: #d03b3b;
-  --color-grid: #e1e0d9;
-  --color-axis: #c3c2b7;
-  --color-ink-muted: #898781;
+  --color-series-1: #2563eb;
+  --color-series-2: #ea580c;
+  --color-series-3: #10b981;
+  --color-diverge-pos: #2563eb;
+  --color-diverge-neg: #dc2626;
+  --color-diverge-mid: #f1f5f9;
+  --color-status-good: #10b981;
+  --color-status-warning: #f59e0b;
+  --color-status-critical: #ef4444;
+  --color-grid: #e2e8f0;
+  --color-axis: #cbd5e1;
+  --color-ink-muted: #94a3b8;
 
-  --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", sans-serif;
 }
 
-/* The handful of rules Tailwind utilities cannot express. */
+/* Core Apple-inspired typography and rendering rules */
 html {
   font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+body {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(226, 232, 240, 0.45) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(219, 234, 254, 0.4) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(241, 245, 249, 0.6) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #0f172a;
+}
+
+/* Apple Dialog & Scrim */
 dialog::backdrop {
-  background: #14203980;
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  animation: appleBackdropFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes appleBackdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 :focus-visible {
-  outline: 3px solid #4274e9;
-  outline-offset: 3px;
+  outline: 2.5px solid #0071e3;
+  outline-offset: 2px;
+}
+
+/* Apple fluid response & micro-spring interaction */
+.apple-press {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.apple-press:active {
+  transform: scale(0.972);
+}
+
+/* Apple translucent chrome layers */
+.apple-glass {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.02);
+}
+
+.apple-glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 8px 24px -4px rgba(15, 23, 42, 0.04);
+}
+
+.apple-glass-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Smooth macOS-style scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+  background-clip: padding-box;
 }

@@ -22,16 +22,34 @@ export function CuratorModal({open, title, children, onClose}: Props) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[#020813]/80 p-4 backdrop-blur-sm" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <section role="dialog" aria-modal="true" aria-label={title} className="max-h-[min(760px,calc(100dvh-32px))] w-full max-w-[520px] overflow-y-auto rounded-xl border border-[#354861] bg-[#0e1928] shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#293b52] bg-[#0e1928]/95 px-5 py-4 backdrop-blur">
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-[#020813]/75 p-4 backdrop-blur-md transition-opacity"
+      role="presentation"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="max-h-[min(780px,calc(100dvh-32px))] w-full max-w-[530px] overflow-y-auto rounded-3xl border border-white/[0.12] bg-[#0c1626]/95 shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-2xl ring-1 ring-white/10"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/[0.08] bg-[#0c1626]/95 px-6 py-4.5 backdrop-blur-xl">
           <div>
-            <p className="font-mono text-[9px] font-[800] tracking-[1.7px] text-[#5dd7c4]">MANAGER ACTION</p>
-            <h2 className="mt-1 text-[17px] font-[800] text-white">{title}</h2>
+            <div className="inline-flex items-center gap-1.5 rounded-full border border-[#5dd7c4]/30 bg-[#5dd7c4]/10 px-2.5 py-0.5 text-[9px] font-bold tracking-[1.5px] text-[#5dd7c4] uppercase">
+              MANAGER ACTION
+            </div>
+            <h2 className="mt-1 text-[18px] font-bold tracking-tight text-white">{title}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close dialog" className="grid h-9 w-9 place-items-center rounded-lg border border-[#33465e] text-[18px] text-[#9babc0] hover:border-[#64758b] hover:text-white">×</button>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="apple-press grid h-8 w-8 place-items-center rounded-full bg-white/10 text-[18px] text-slate-300 hover:bg-white/20 hover:text-white"
+          >
+            ×
+          </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </section>
     </div>
   );

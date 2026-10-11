@@ -320,32 +320,40 @@ export function RebalanceCard({vault, managerAllowed}: Props) {
   );
 }
 
-const inputClass = 'w-full rounded-lg border border-[#33445b] bg-[#07131f] px-3 py-[10px] text-[12px] text-white outline-none focus:border-[#f4cd3f] disabled:opacity-50';
+const inputClass = 'w-full rounded-2xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-[12px] font-medium text-white outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400 disabled:opacity-50';
 
 function Field({label, children}: {label: string; children: React.ReactNode}) {
-  return <label className="grid gap-1.5 text-[10px] font-[700] text-[#b8c4d4]">{label}{children}</label>;
+  return <label className="grid gap-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-300">{label}{children}</label>;
 }
 
 function QuoteValue({label, value}: {label: string; value: string}) {
   return (
     <div>
-      <span className="block font-mono text-[9px] uppercase tracking-[0.7px] text-[#718198]">{label}</span>
-      <strong className="mt-1 block break-words text-[12px] font-[700] text-[#e7edf6]">{value}</strong>
+      <span className="block font-mono text-[9px] uppercase tracking-[0.8px] text-slate-400">{label}</span>
+      <strong className="mt-1 block break-words text-[13px] font-bold text-white tabular-nums">{value}</strong>
     </div>
   );
 }
 
 function StatusPill({ok, label}: {ok: boolean; label: string}) {
-  return <span className={`shrink-0 rounded border px-2 py-1 font-mono text-[9px] ${ok ? 'border-[#225f58] bg-[#123e39] text-[#6ee7d1]' : 'border-[#69333d] bg-[#2a1820] text-[#ff9ba5]'}`}>{label}</span>;
+  return (
+    <span
+      className={`shrink-0 rounded-full border px-2.5 py-0.5 font-mono text-[9px] font-semibold ${
+        ok ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+      }`}
+    >
+      {label}
+    </span>
+  );
 }
 
 function Stage({label, status}: {label: string; status: string}) {
   const positive = status === 'Ready';
   const warning = status === 'Expired' || status === 'Error' || status.includes('Blocked');
   return (
-    <li className="flex items-center justify-between gap-3 rounded-lg border border-[#26364b] bg-[#0d1724] px-2.5 py-2">
-      <span className="min-w-0 break-all text-[#aab7c9]">{label}</span>
-      <strong className={positive ? 'text-[#6ee7d1]' : warning ? 'text-[#ff9ba5]' : 'text-[#78889f]'}>{status}</strong>
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+      <span className="min-w-0 break-all text-slate-300">{label}</span>
+      <strong className={positive ? 'text-emerald-400' : warning ? 'text-rose-400' : 'text-slate-400'}>{status}</strong>
     </li>
   );
 }

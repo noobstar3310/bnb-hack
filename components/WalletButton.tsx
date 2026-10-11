@@ -5,8 +5,8 @@ import {useChainId, useConnect, useConnection, useConnectors, useDisconnect, use
 import {shortAddress} from '@/lib/domain/format';
 import {appChain, appChainLabel} from '@/lib/contracts/wagmi';
 
-const pill =
-  'ml-auto shrink-0 rounded-md border px-[10px] py-2 text-[12px] font-[650] whitespace-nowrap sm:px-3 sm:text-[13px]';
+const basePill =
+  'apple-press shrink-0 inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-all sm:text-[13px]';
 
 const subscribeNothing = () => () => {};
 
@@ -20,7 +20,13 @@ export function WalletButton() {
   // The wallet only exists in the browser; render the same placeholder on the server.
   const mounted = useSyncExternalStore(subscribeNothing, () => true, () => false);
 
-  if (!mounted) return <span className={`${pill} border-line-2 text-muted-3`}>Wallet</span>;
+  if (!mounted) {
+    return (
+      <span className={`${basePill} border-black/[0.06] bg-black/[0.02] text-slate-400`}>
+        Wallet
+      </span>
+    );
+  }
 
   if (!isConnected) {
     const injected = connectors[0];
@@ -29,11 +35,12 @@ export function WalletButton() {
         type="button"
         disabled={!injected || isPending}
         onClick={() => injected && connect({connector: injected})}
-        className={`${pill} border-ink-soft bg-ink-soft text-white hover:bg-ink-hover disabled:opacity-60`}
+        className={`${basePill} border-slate-900 bg-gradient-to-b from-slate-800 to-slate-950 text-white shadow-sm hover:from-slate-700 hover:to-slate-900 disabled:opacity-50`}
       >
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
         {isPending ? 'Connecting…' : (
           <>
-            Connect<span className="hidden sm:inline"> wallet</span>
+            Connect<span className="hidden sm:inline"> Wallet</span>
           </>
         )}
       </button>
@@ -45,9 +52,10 @@ export function WalletButton() {
       <button
         type="button"
         onClick={() => switchChain({chainId: appChain.id})}
-        className={`${pill} border-[#e6c27a] bg-[#fff6e3] text-[#7a5310]`}
+        className={`${basePill} border-amber-200 bg-amber-50 text-amber-800 shadow-xs hover:bg-amber-100`}
       >
-        <span className="sm:hidden">Wrong network</span>
+        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+        <span className="sm:hidden">Switch Network</span>
         <span className="hidden sm:inline">Switch to {appChainLabel}</span>
       </button>
     );
@@ -56,12 +64,16 @@ export function WalletButton() {
   return (
     <button
       type="button"
-      title="Disconnect"
+      title="Click to disconnect"
       onClick={() => disconnect()}
-      className={`${pill} border-pill-line bg-pill-bg text-ink`}
+      className={`${basePill} border-emerald-200 bg-emerald-50/70 text-slate-800 shadow-xs hover:border-emerald-300 hover:bg-emerald-100/60`}
     >
-      <span className="mr-[6px] inline-block h-2 w-2 rounded-full bg-positive sm:mr-2" />
-      {shortAddress(address!)}
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      <span className="font-mono text-[11px] tracking-tight sm:text-[12px]">{shortAddress(address!)}</span>
     </button>
   );
 }
+
